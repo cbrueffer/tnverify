@@ -219,7 +219,7 @@ class tnverify:
         fig = plt.figure()
         plt.clf()
         dendrogram(linkage_matrix, labels=self.samplenames,
-                   leaf_label_rotation=45)
+                   leaf_rotation=45)
 
         fig.savefig(".".join([filename, fileformat]), format=fileformat)
 
