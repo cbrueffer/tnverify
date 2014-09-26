@@ -231,6 +231,7 @@ class tnverify:
 
     def clusterplot(self, snpmatrix, leaf_labels, distmeth="canberra", linkmeth="single",
                     filename="foo", fileformat="png"):
+        """Writes a hierarchical clustering plot."""
         mat = snpmatrix.transpose()
 
         dist_matrix = pdist(mat, distmeth)
@@ -245,6 +246,8 @@ class tnverify:
 
 
 def verbosity_to_loglevel(verbosity, skip=3):
+    """Map verbosity level to loglevel.  Skip determines which
+    levels will be skipped."""
     levels = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
     select = min(verbosity + skip, len(levels) - 1)
     return levels[select]
