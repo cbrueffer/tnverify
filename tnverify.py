@@ -120,7 +120,7 @@ def get_file_dims(f):
 
 class tnverify:
 
-    def __init__(self, snpfile, samplefile, reference, logger=None):
+    def __init__(self, vcffile, samplefile, reference, logger=None):
         if logger:
             self.logger = logger
         else:
@@ -130,7 +130,7 @@ class tnverify:
         #outfile = ""
         #call_snps(samplelist, reference, regions, outfile)
     
-        self.flagmatrix, self.samplenames = self.vcf2ndarray(snpfile,
+        self.flagmatrix, self.samplenames = self.vcf2ndarray(vcffile,
                                                              add_random_sample=False)
 
         self.clusterplot(self.flagmatrix)
