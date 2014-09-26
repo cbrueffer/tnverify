@@ -120,7 +120,7 @@ def get_file_dims(f):
 
 class tnverify:
 
-    def __init__(self, snpfile, samplefile, logger=None):
+    def __init__(self, snpfile, samplefile, reference, logger=None):
         if logger:
             self.logger = logger
         else:
@@ -131,7 +131,7 @@ class tnverify:
         #call_snps(samplelist, reference, regions, outfile)
     
         self.flagmatrix, self.samplenames = self.vcf2ndarray(snpfile,
-                                                             include_random=False)
+                                                             add_random_sample=False)
 
         self.clusterplot(self.flagmatrix)
 
@@ -145,7 +145,7 @@ class tnverify:
         """Return a sample vector with random variant calls."""
         return [random.randint(0, 2) for x in range(length)]
 
-    def vcf2ndarray(self, vcffile, include_random=True):
+    def vcf2ndarray(self, vcffile, add_random_sample=True):
         vcfmatrix = None
         samplenames = None
         valid_count = 0
@@ -153,7 +153,7 @@ class tnverify:
             nrows, ncols, ncomments = get_file_dims(vcf)
 
             # +1 to leave space for a sample with random variant calls
-            if include_random:
+            if add_random_sample:
                 vcfmatrix = np.ndarray((nrows, ncols+1))
             else:
                 vcfmatrix = np.ndarray((nrows, ncols))
@@ -190,7 +190,7 @@ class tnverify:
 
         self.logger.info("%i valid variations found" % valid_count)
 
-        if include_random:
+        if add_random_sample:
             vcfmatrix[:, ncols] = self.generate_random_sample(nrows)
             samplenames.append("random")
 
@@ -225,20 +225,21 @@ class tnverify:
 
 
 if __name__ == "__main__":
-    #import argparse
+    import argparse
     import sys
 
-    #parser = argparse.ArgumentParser(description='Verify tumor-normal pair identities')
-    #args = parser.parse_args()
+    parser = argparse.ArgumentParser(description='Verify tumor-normal pair identities')
+    parser.add_argument("samplemap", help="Map of BAM file to label")
+    parser.add_argument("reference", help="Reference FASTA sequence")
+    parser.add_argument("regions", help="SNP regions in BED format")
+    parser.add_argument("-m", "--matrix", help="Existing SNP matrix")
+    args = parser.parse_args()
 
-    reference = "/runarea1/references/b37d5-dbSNP135/human_g1k_v37_decoy_dbSNP135_10M.fasta"
-    regions = "/casa3/project_archive/v2exome-analysis-tools/ucsc-snp135Common-b37-hapmap-maf5allpops.bed"
+    if not args.matrix:
+        args.matrix = "tempfile"
 
     try:
-        file = sys.argv[1]
-        samplefile = sys.argv[2]
-
-        tnv = tnverify(file, samplefile)
+        tnv = tnverify(args.matrix, args.samplemap, args.reference)
     except KeyboardInterrupt:
         print "Program interrupted by user, exiting..."
     except Exception as e:
