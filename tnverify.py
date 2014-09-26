@@ -127,7 +127,7 @@ class tnverify:
             self.logger = init_logger()
 
         self.logger.info("Parameters")
-        self.logger.info("Work directory: %s (%s)" % os.path.abspath(workdir))
+        self.logger.info("Work directory: %s" % os.path.abspath(workdir))
         self.logger.info("VCF file: %s " % os.path.abspath(vcffile))
         self.logger.info("Sample map file: %s" % os.path.abspath(samplefile))
         self.logger.info("Reference file: %s" % os.path.abspath(reference))
@@ -264,8 +264,12 @@ if __name__ == "__main__":
         home = os.path.expanduser("~")
         args.workdir = os.path.join(home, "tnverify_run")
 
+    logfile = os.path.join(args.workdir, "tnverify_log.txt")
+    logger = init_logger(logfile=logfile)
+
     try:
-        tnv = tnverify(args.workdir, args.matrix, args.samplemap, args.reference)
+        tnv = tnverify(args.workdir, args.matrix, args.samplemap,
+                       args.reference, logger=logger)
     except KeyboardInterrupt:
         print "Program interrupted by user, exiting..."
     except Exception as e:
