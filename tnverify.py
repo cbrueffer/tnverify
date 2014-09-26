@@ -25,6 +25,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
+import logging
 import numpy as np
 import matplotlib
 matplotlib.use('AGG')
@@ -60,25 +61,24 @@ def vcf2flag(x):
     raise NotImplementedError
 
 
-def init_logger(level=None, logfile=None):
-    """Initializes a logger.  If logfile is given, the logger will log to the
-    file, otherwise to the console."""
-
-    import logging
-
-    if level is None:
-        level = logging.INFO
-
-    if logfile:
-        handler = logging.FileHandler(logfile)
-    else:
-        handler = logging.StreamHandler()
-
-    handler.setLevel(level)
-    handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"))
+def init_logger(level=logging.INFO, logfile=None):
+    """Initializes a logger.  Logs to the console and to a logfile, if specified."""
     logger = logging.getLogger("")
     logger.setLevel(level)
-    logger.addHandler(handler)
+
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S")
+
+    cons_handler = logging.StreamHandler()
+    cons_handler.setLevel(level)
+    cons_handler.setFormatter(formatter)
+    logger.addHandler(cons_handler)
+
+    if logfile:
+        file_handler = logging.FileHandler(logfile)
+        file_handler.setLevel(level)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
     return logger
 
 
