@@ -176,9 +176,7 @@ class tnverify:
                 format = cols[col_format]
 
                 if line.startswith("#"):
-                    # print samples
                     samplenames = samples
-                #    print "\t".join(sampleNames)
                     continue
 
                 # make sure that GT is always first
