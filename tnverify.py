@@ -130,10 +130,15 @@ class tnverify:
         #outfile = ""
         #call_snps(samplelist, reference, regions, outfile)
     
-        self.flagmatrix, self.samplenames = self.vcf2ndarray(vcffile,
+        self.flagmatrix, self.vcfsamplenames = self.vcf2ndarray(vcffile,
                                                              add_random_sample=False)
 
-        self.clusterplot(self.flagmatrix)
+        if vcffile:
+            leaf_labels = self.vcfsamplenames
+        else:
+            leaf_labels = self.sample_labels
+
+        self.clusterplot(self.flagmatrix, leaf_labels)
 
     def call_snps(self, samples, reference, regions, outfile):
         # samtools mpileup -IguDB -f $ref -l $regions ${BamDir}/${samples} | bcftools view -vcg - > ${OutDir}/result-contralat.txt"
@@ -215,7 +220,7 @@ class tnverify:
 
         return sample_paths, sample_labels
 
-    def clusterplot(self, snpmatrix, distmeth="canberra", linkmeth="single",
+    def clusterplot(self, snpmatrix, leaf_labels, distmeth="canberra", linkmeth="single",
                     filename="foo", fileformat="png"):
         mat = snpmatrix.transpose()
 
@@ -224,7 +229,7 @@ class tnverify:
 
         fig = plt.figure()
         plt.clf()
-        dendrogram(linkage_matrix, labels=self.samplenames,
+        dendrogram(linkage_matrix, labels=leaf_labels,
                    leaf_rotation=45)
 
         fig.savefig(".".join([filename, fileformat]), format=fileformat)
