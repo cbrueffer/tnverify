@@ -244,6 +244,12 @@ class tnverify:
         fig.savefig(".".join([filename, fileformat]), format=fileformat)
 
 
+def verbosity_to_loglevel(verbosity, skip=3):
+    levels = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
+    select = min(verbosity + skip, len(levels) - 1)
+    return levels[select]
+
+
 if __name__ == "__main__":
     import argparse
     import os
@@ -255,6 +261,8 @@ if __name__ == "__main__":
     parser.add_argument("reference", help="Reference FASTA sequence")
     parser.add_argument("regions", help="SNP regions in BED format")
     parser.add_argument("-m", "--matrix", help="Existing SNP matrix")
+    parser.add_argument("-v", "--verbosity", help="Increase logging verbosity",
+                        action="count", default=0)
     args = parser.parse_args()
 
     if not args.matrix:
@@ -265,7 +273,9 @@ if __name__ == "__main__":
         args.workdir = os.path.join(home, "tnverify_run")
 
     logfile = os.path.join(args.workdir, "tnverify_log.txt")
-    logger = init_logger(logfile=logfile)
+    loglevel = verbosity_to_loglevel(args.verbosity)
+    logger = init_logger(loglevel, logfile)
+    logger.debug("Setting logging verbosity: %s" % loglevel)
 
     try:
         tnv = tnverify(args.workdir, args.matrix, args.samplemap,
