@@ -126,11 +126,11 @@ class tnverify:
         else:
             self.logger = init_logger()
 
-        self.logger.info("Parameters")
-        self.logger.info("Work directory: %s" % os.path.abspath(workdir))
-        self.logger.info("VCF file: %s " % os.path.abspath(vcffile))
-        self.logger.info("Sample map file: %s" % os.path.abspath(samplefile))
-        self.logger.info("Reference file: %s" % os.path.abspath(reference))
+        self.logger.info("Specified parameters:\n" +
+                        "Work directory: %s\n" % os.path.abspath(workdir) +
+                        "VCF file: %s\n" % os.path.abspath(vcffile) +
+                        "Sample map file: %s\n" % os.path.abspath(samplefile) +
+                        "Reference file: %s\n" % os.path.abspath(reference))
 
         self.sample_paths, self.sample_labels = self.read_samplefile(samplefile)
 
