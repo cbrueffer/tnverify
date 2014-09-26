@@ -120,14 +120,22 @@ def get_file_dims(f):
 
 class tnverify:
 
-    def __init__(self, vcffile, samplefile, reference, logger=None):
+    def __init__(self, workdir, vcffile, samplefile, reference, logger=None):
         if logger:
             self.logger = logger
         else:
             self.logger = init_logger()
 
+        self.logger.info("Parameters")
+        self.logger.info("Work directory: %s (%s)" % os.path.abspath(workdir))
+        self.logger.info("VCF file: %s " % os.path.abspath(vcffile))
+        self.logger.info("Sample map file: %s" % os.path.abspath(samplefile))
+        self.logger.info("Reference file: %s" % os.path.abspath(reference))
+
         self.sample_paths, self.sample_labels = self.read_samplefile(samplefile)
-        #outfile = ""
+
+        bcftools_out = "bcftools_temp.vcf"
+
         #call_snps(samplelist, reference, regions, outfile)
     
         self.flagmatrix, self.vcfsamplenames = self.vcf2ndarray(vcffile,
@@ -205,6 +213,9 @@ class tnverify:
 
         return vcfmatrix, samplenames
 
+    def filter_uninformative_snps(self):
+        pass
+
     def read_samplefile(self, sfile):
         sample_paths = []
         sample_labels = []
@@ -235,9 +246,11 @@ class tnverify:
 
 if __name__ == "__main__":
     import argparse
+    import os
     import sys
 
     parser = argparse.ArgumentParser(description='Verify tumor-normal pair identities')
+    parser.add_argument("workdir", help="Directory for intermediary files")
     parser.add_argument("samplemap", help="Map of BAM file to label")
     parser.add_argument("reference", help="Reference FASTA sequence")
     parser.add_argument("regions", help="SNP regions in BED format")
@@ -247,8 +260,12 @@ if __name__ == "__main__":
     if not args.matrix:
         args.matrix = "tempfile"
 
+    if not args.workdir:
+        home = os.path.expanduser("~")
+        args.workdir = os.path.join(home, "tnverify_run")
+
     try:
-        tnv = tnverify(args.matrix, args.samplemap, args.reference)
+        tnv = tnverify(args.workdir, args.matrix, args.samplemap, args.reference)
     except KeyboardInterrupt:
         print "Program interrupted by user, exiting..."
     except Exception as e:
