@@ -146,6 +146,12 @@ class tnverify:
         return [random.randint(0, 2) for x in range(length)]
 
     def vcf2ndarray(self, vcffile, add_random_sample=True):
+        """Converts a VCF file into a NumPy ndarray matrix of values
+        0 (homozygous reference), 1 (heterozygous) and 2 (homozygous
+        SNP).
+
+        Returns the matrix and a list of corresponding column names.
+        """
         vcfmatrix = None
         samplenames = None
         valid_count = 0
@@ -172,7 +178,7 @@ class tnverify:
 
                 # make sure that GT is always first
                 if not format[:2] == "GT":
-                    #print >> sys.stderr, "Skipping entry with format %s (no genotype found)" % format
+                    self.logger.debug("Skipping entry with format %s (no genotype found)" % format)
                     continue
     
                 # convert vcf entries to simple flags
