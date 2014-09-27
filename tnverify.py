@@ -140,6 +140,7 @@ class tnverify:
     
         self.flagmatrix, self.vcfsamplenames = self.vcf2ndarray(vcffile,
                                                              add_random_sample=False)
+        self.filter_uninformative_snps()
 
         if vcffile:
             leaf_labels = self.vcfsamplenames
@@ -214,7 +215,14 @@ class tnverify:
         return vcfmatrix, samplenames
 
     def filter_uninformative_snps(self):
-        pass
+        """Removes uninformative SNPs from the SNP matrix.  A SNP is
+        informative, if it has at least two different states (1/2/3)
+        across all samples.
+        """
+        uninf_rows = [x for x in range(self.flagmatrix.shape[0]) if
+                 len(np.unique(self.flagmatrix[x, :])) == 1]
+        np.delete(self.flagmatrix, uninf_rows, 0)
+        self.logger.info("Removed %i uninformative SNPs." % len(uninf_rows))
 
     def read_samplefile(self, sfile):
         sample_paths = []
