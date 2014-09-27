@@ -150,6 +150,7 @@ class tnverify:
         self.clusterplot(self.flagmatrix, leaf_labels)
 
     def call_snps(self, samples, reference, regions, outfile):
+        """Run samtools and bcftools to call SNPs."""
         # samtools mpileup -IguDB -f $ref -l $regions ${BamDir}/${samples} | bcftools view -vcg - > ${OutDir}/result-contralat.txt"
         samtools_cmd = "samtools mpileup -IguDB -f %s -l %s %s | bcftools view -vcg - > %s" % (reference, regions, " ".join(samples), outfile)
 
@@ -225,6 +226,10 @@ class tnverify:
         self.logger.info("Removed %i uninformative SNPs." % len(uninf_rows))
 
     def read_samplefile(self, sfile):
+        """Read and parse the sample map file.
+        
+        Format: bampath<TAB>label
+        """
         sample_paths = []
         sample_labels = []
         with open(sfile, "r") as s:
