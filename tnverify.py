@@ -30,7 +30,6 @@ import numpy as np
 import matplotlib
 matplotlib.use('AGG')
 import matplotlib.pyplot as plt
-import random
 from scipy.cluster.hierarchy import linkage, dendrogram
 from scipy.spatial.distance import pdist
 
@@ -143,16 +142,16 @@ class tnverify:
             self.sample_paths, self.sample_labels = self.read_samplefile()
             self.call_snps()
 
-        self.flagmatrix, self.vcfsamplenames = self.vcf2ndarray(self.vcffile,
-                                                             add_random_sample=False)
+        self.flagmatrix, self.vcfsamplenames = self.vcf2ndarray(self.vcffile)
         self.filter_uninformative_snps()
 
         if vcffile:
-            leaf_labels = self.vcfsamplenames
+            self.leaf_labels = self.vcfsamplenames
         else:
-            leaf_labels = self.sample_labels
+            self.leaf_labels = self.sample_labels
 
-        self.clusterplot(self.flagmatrix, leaf_labels)
+        self.add_random_sample()
+        self.clusterplot(self.flagmatrix, self.leaf_labels)
 
     def call_snps(self):
         """Run samtools and bcftools to call SNPs."""
@@ -172,11 +171,16 @@ class tnverify:
         exec_cmd = "|".join([samtools_cmd, bcftools_cmd])
         exec_and_log(exec_cmd, self.logger)
 
-    def generate_random_sample(self, length):
-        """Return a sample vector with random variant calls."""
-        return [random.randint(0, 2) for x in range(length)]
+    def add_random_sample(self):
+        """Adds a sample consisting of random variant calls to the flag
+        matrix, and the "random" name to the leaf labels."""
+        self.logger.info("Adding a random sample to the SNP matrix.")
+        length = self.flagmatrix.shape[0]  # number of rows
+        rsamp = np.random.randint(0, 3, size=(length, 1))
+        self.flagmatrix = np.append(self.flagmatrix, rsamp, axis=1)
+        self.leaf_labels.append("random")
 
-    def vcf2ndarray(self, vcffile, add_random_sample=True):
+    def vcf2ndarray(self, vcffile):
         """Converts a VCF file into a NumPy ndarray matrix of values
         0 (homozygous reference), 1 (heterozygous) and 2 (homozygous
         SNP).
@@ -189,11 +193,7 @@ class tnverify:
         with open(vcffile) as vcf_input:
             nrows, ncols, ncomments = get_file_dims(vcf_input)
 
-            # +1 to leave space for a sample with random variant calls
-            if add_random_sample:
-                vcfmatrix = np.ndarray((nrows, ncols+1))
-            else:
-                vcfmatrix = np.ndarray((nrows, ncols))
+            vcfmatrix = np.ndarray((nrows, ncols))
             for k, line in enumerate(vcf_input):
                 if line.startswith("##"):
                     continue
@@ -230,11 +230,6 @@ class tnverify:
                 vcfmatrix[k-ncomments, :ncols] = np.asarray(flags)
 
         self.logger.info("%i valid variations found" % valid_count)
-
-        if add_random_sample:
-            self.logger.info("Adding a random sample to the SNP matrix.")
-            vcfmatrix[:, ncols] = self.generate_random_sample(nrows)
-            samplenames.append("random")
 
         return vcfmatrix, samplenames
 
