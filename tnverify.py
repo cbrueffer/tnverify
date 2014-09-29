@@ -130,12 +130,12 @@ class tnverify:
         self.samplefile = samplefile
         self.reference = reference
 
-        self.logger.info("Specified parameters:\n" +
-                        "Work directory: %s\n" % os.path.abspath(self.workdir) +
-                        "Regions file: %s\n" % os.path.abspath(self.regions) +
-                        "VCF file: %s\n" % os.path.abspath(self.vcffile) +
-                        "Sample map file: %s\n" % os.path.abspath(self.samplefile) +
-                        "Reference file: %s\n" % os.path.abspath(self.reference))
+        self.logger.info("Specified parameters:")
+        self.logger.info("Work directory: %s" % os.path.abspath(self.workdir))
+        self.logger.info("Regions file: %s" % os.path.abspath(self.regions))
+        self.logger.info("VCF file: %s" % os.path.abspath(self.vcffile))
+        self.logger.info("Sample map file: %s" % os.path.abspath(self.samplefile))
+        self.logger.info("Reference file: %s" % os.path.abspath(self.reference))
 
         if self.samplefile:
             self.sample_paths, self.sample_labels = self.read_samplefile()
