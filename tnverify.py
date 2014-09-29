@@ -124,19 +124,24 @@ class tnverify:
         else:
             self.logger = init_logger()
 
-        self.logger.info("Specified parameters:\n" +
-                        "Work directory: %s\n" % os.path.abspath(workdir) +
-                        "VCF file: %s\n" % os.path.abspath(vcffile) +
-                        "Sample map file: %s\n" % os.path.abspath(samplefile) +
-                        "Reference file: %s\n" % os.path.abspath(reference))
+        self.workdir = workdir
+        self.vcffile = vcffile
+        self.samplefile = samplefile
+        self.reference = reference
 
-        self.sample_paths, self.sample_labels = self.read_samplefile(samplefile)
+        self.logger.info("Specified parameters:\n" +
+                        "Work directory: %s\n" % os.path.abspath(self.workdir) +
+                        "VCF file: %s\n" % os.path.abspath(self.vcffile) +
+                        "Sample map file: %s\n" % os.path.abspath(self.samplefile) +
+                        "Reference file: %s\n" % os.path.abspath(self.reference))
+
+        self.sample_paths, self.sample_labels = self.read_samplefile()
 
         bcftools_out = "bcftools_temp.vcf"
 
         #call_snps(samplelist, reference, regions, outfile)
     
-        self.flagmatrix, self.vcfsamplenames = self.vcf2ndarray(vcffile,
+        self.flagmatrix, self.vcfsamplenames = self.vcf2ndarray(self.vcffile,
                                                              add_random_sample=False)
         self.filter_uninformative_snps()
 
@@ -234,14 +239,14 @@ class tnverify:
         self.logger.debug("SNP matrix after filtering: %i rows, %i cols" %
                           self.flagmatrix.shape)
 
-    def read_samplefile(self, sfile):
+    def read_samplefile(self):
         """Read and parse the sample map file.
         
         Format: bampath<TAB>label
         """
         sample_paths = []
         sample_labels = []
-        with open(sfile, "r") as s:
+        with open(self.samplefile, "r") as s:
             for line in s:
                 if line.startswith("#"):
                     continue
