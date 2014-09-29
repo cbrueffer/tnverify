@@ -118,19 +118,21 @@ def get_file_dims(f):
 
 class tnverify:
 
-    def __init__(self, workdir, vcffile, samplefile, reference, logger=None):
+    def __init__(self, workdir, regions, vcffile, samplefile, reference, logger=None):
         if logger:
             self.logger = logger
         else:
             self.logger = init_logger()
 
         self.workdir = workdir
+        self.regions = regions
         self.vcffile = vcffile
         self.samplefile = samplefile
         self.reference = reference
 
         self.logger.info("Specified parameters:\n" +
                         "Work directory: %s\n" % os.path.abspath(self.workdir) +
+                        "Regions file: %s\n" % os.path.abspath(self.regions) +
                         "VCF file: %s\n" % os.path.abspath(self.vcffile) +
                         "Sample map file: %s\n" % os.path.abspath(self.samplefile) +
                         "Reference file: %s\n" % os.path.abspath(self.reference))
@@ -152,7 +154,7 @@ class tnverify:
 
         self.clusterplot(self.flagmatrix, leaf_labels)
 
-    def call_snps(self, regions, outfile):
+    def call_snps(self, outfile):
         """Run samtools and bcftools to call SNPs."""
         # -I           do not perform indel calling
         # -g           generate BCF output (genotype likelihoods)
@@ -160,7 +162,7 @@ class tnverify:
         # -D           output per-sample DP in BCF (require -g/-u)
         # -B           disable BAQ computation
         samtools_cmd = "samtools mpileup -IguDB -f %s -l %s %s" % (self.reference,
-                                                                   regions,
+                                                                   self.regions,
                                                                    " ".join(self.sample_paths))
         # -v        output potential variant sites only (force -c)
         # -c        SNP calling (force -e)
@@ -319,7 +321,7 @@ if __name__ == "__main__":
     logger.debug("Setting logging verbosity: %s" % loglevel)
 
     try:
-        tnv = tnverify(args.workdir, args.matrix, args.samplemap,
+        tnv = tnverify(args.workdir, args.regions, args.matrix, args.samplemap,
                        args.reference, logger=logger)
     except KeyboardInterrupt:
         logger.info("Program interrupted by user, exiting.")
