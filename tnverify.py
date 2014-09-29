@@ -143,15 +143,13 @@ class tnverify:
             self.call_snps()
 
         self.flagmatrix, self.vcfsamplenames = self.vcf2ndarray(self.vcffile)
+
+        self.overall_flagmtx = self.newcalled_vcf
+        self.overall_leaf_labels = self.sample_labels
+
         self.filter_uninformative_snps()
-
-        if vcffile:
-            self.leaf_labels = self.vcfsamplenames
-        else:
-            self.leaf_labels = self.sample_labels
-
         self.add_random_sample()
-        self.clusterplot(self.flagmatrix, self.leaf_labels)
+        self.clusterplot()
 
     def call_snps(self):
         """Run samtools and bcftools to call SNPs."""
@@ -175,10 +173,10 @@ class tnverify:
         """Adds a sample consisting of random variant calls to the flag
         matrix, and the "random" name to the leaf labels."""
         self.logger.info("Adding a random sample to the SNP matrix.")
-        length = self.flagmatrix.shape[0]  # number of rows
+        length = self.overall_flagmtx.shape[0]  # number of rows
         rsamp = np.random.randint(0, 3, size=(length, 1))
-        self.flagmatrix = np.append(self.flagmatrix, rsamp, axis=1)
-        self.leaf_labels.append("random")
+        self.overall_flagmtx = np.append(self.overall_flagmtx, rsamp, axis=1)
+        self.overall_leaf_labels.append("random")
 
     def vcf2ndarray(self, vcffile):
         """Converts a VCF file into a NumPy ndarray matrix of values
@@ -238,14 +236,14 @@ class tnverify:
         informative, if it has at least two different states (1/2/3)
         across all samples.
         """
-        uninf_rows = [x for x in range(self.flagmatrix.shape[0]) if
-                 len(np.unique(self.flagmatrix[x, :])) == 1]
+        uninf_rows = [x for x in range(self.overall_flagmtx.shape[0]) if
+                 len(np.unique(self.overall_flagmtx[x, :])) == 1]
         self.logger.debug("SNP matrix before filtering: %i rows, %i cols" %
-                          self.flagmatrix.shape)
-        self.flagmatrix = np.delete(self.flagmatrix, uninf_rows, 0)
+                          self.overall_flagmtx.shape)
+        self.overall_flagmatrix = np.delete(self.overall_flagmtx, uninf_rows, 0)
         self.logger.info("Removed %i uninformative SNPs." % len(uninf_rows))
         self.logger.debug("SNP matrix after filtering: %i rows, %i cols" %
-                          self.flagmatrix.shape)
+                          self.overall_flagmtx.shape)
 
     def read_samplefile(self):
         """Read and parse the sample map file.
@@ -264,17 +262,17 @@ class tnverify:
 
         return sample_paths, sample_labels
 
-    def clusterplot(self, snpmatrix, leaf_labels, distmeth="canberra", linkmeth="single",
+    def clusterplot(self, distmeth="canberra", linkmeth="single",
                     filename="tnverify_hierarchical_clustering", fileformat="png"):
         """Writes a hierarchical clustering plot."""
-        mat = snpmatrix.transpose()
+        mat = self.overall_flagmtx.transpose()
 
         dist_matrix = pdist(mat, distmeth)
         linkage_matrix = linkage(dist_matrix, linkmeth)
 
         fig = plt.figure()
         plt.clf()
-        dendrogram(linkage_matrix, labels=leaf_labels,
+        dendrogram(linkage_matrix, labels=self.overall_leaf_labels,
                    leaf_rotation=45)
 
         fig.savefig(".".join([filename, fileformat]), format=fileformat)
