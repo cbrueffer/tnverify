@@ -118,13 +118,15 @@ def get_file_dims(f):
 
 class tnverify:
 
-    def __init__(self, workdir, regions, reference, vcffile=None, samplefile=None, logger=None):
+    def __init__(self, workdir, regions, reference, bcftools_out="bcftools_temp.vcf",
+                 vcffile=None, samplefile=None, logger=None):
         if logger:
             self.logger = logger
         else:
             self.logger = init_logger()
 
         self.workdir = workdir
+        self.bcftools_out = os.path.join(self.workdir, bcftools_out)
         self.regions = regions
         self.vcffile = vcffile
         self.samplefile = samplefile
@@ -139,11 +141,8 @@ class tnverify:
 
         if self.samplefile:
             self.sample_paths, self.sample_labels = self.read_samplefile()
+            self.call_snps()
 
-        self.bcftools_out = "bcftools_temp.vcf"
-
-        #call_snps(samplelist, reference, regions, outfile)
-    
         self.flagmatrix, self.vcfsamplenames = self.vcf2ndarray(self.vcffile,
                                                              add_random_sample=False)
         self.filter_uninformative_snps()
@@ -295,6 +294,9 @@ def verbosity_to_loglevel(verbosity, skip=3):
 
 
 def is_valid_file(path):
+    """Tests whether or not a file can be opened read-only.
+
+    Either returns the file name, or raises a parser exception."""
     try:
         testfile = open(path, "r")
         testfile.close()
