@@ -168,23 +168,23 @@ class tnverify:
         vcfmatrix = None
         samplenames = None
         valid_count = 0
-        with open(vcffile) as vcf:
-            nrows, ncols, ncomments = get_file_dims(vcf)
+        with open(vcffile) as vcf_input:
+            nrows, ncols, ncomments = get_file_dims(vcf_input)
 
             # +1 to leave space for a sample with random variant calls
             if add_random_sample:
                 vcfmatrix = np.ndarray((nrows, ncols+1))
             else:
                 vcfmatrix = np.ndarray((nrows, ncols))
-            for k, line in enumerate(vcf):
+            for k, line in enumerate(vcf_input):
                 if line.startswith("##"):
                     continue
                 cols = line.rstrip().split("\t")
-                samples = cols[col_sample_start:]
+                entries = cols[col_sample_start:]
                 format = cols[col_format]
 
                 if line.startswith("#"):
-                    samplenames = samples
+                    samplenames = entries
                     continue
 
                 # make sure that GT is always first
@@ -195,8 +195,8 @@ class tnverify:
                 # convert vcf entries to simple flags
                 flags = []
                 try:
-                    for i in range(len(samples)):
-                        f = vcf2flag(samples[i])
+                    for i in range(len(entries)):
+                        f = vcf2flag(entries[i])
                         flags.append(f)
                 except NotImplementedError as e:
                     self.logger.debug(str(e))
