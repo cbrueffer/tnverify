@@ -210,6 +210,7 @@ class tnverify:
         self.logger.info("%i valid variations found" % valid_count)
 
         if add_random_sample:
+            self.logger.info("Adding a random sample to the SNP matrix.")
             vcfmatrix[:, ncols] = self.generate_random_sample(nrows)
             samplenames.append("random")
 
