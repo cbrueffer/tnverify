@@ -222,8 +222,12 @@ class tnverify:
         """
         uninf_rows = [x for x in range(self.flagmatrix.shape[0]) if
                  len(np.unique(self.flagmatrix[x, :])) == 1]
-        np.delete(self.flagmatrix, uninf_rows, 0)
+        self.logger.debug("SNP matrix before filtering: %i rows, %i cols" %
+                          self.flagmatrix.shape)
+        self.flagmatrix = np.delete(self.flagmatrix, uninf_rows, 0)
         self.logger.info("Removed %i uninformative SNPs." % len(uninf_rows))
+        self.logger.debug("SNP matrix after filtering: %i rows, %i cols" %
+                          self.flagmatrix.shape)
 
     def read_samplefile(self, sfile):
         """Read and parse the sample map file.
