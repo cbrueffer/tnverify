@@ -307,6 +307,7 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--vcffile", help="VCF file")
     parser.add_argument("-v", "--verbosity", help="Increase logging verbosity",
                         action="count", default=0)
+    parser.add_argument("--version", action="version", version="%(prog)s 0.1")
     args = parser.parse_args()
 
     if not args.vcffile:
