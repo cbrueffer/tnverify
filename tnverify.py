@@ -294,6 +294,16 @@ def verbosity_to_loglevel(verbosity, skip=3):
     return levels[select]
 
 
+def is_valid_file(path):
+    try:
+        testfile = open(path, "r")
+        testfile.close()
+        return path
+    except:
+        msg = "Cannot open file %s!" % path
+        raise argparse.ArgumentTypeError(msg)
+
+
 if __name__ == "__main__":
     import argparse
     import os
@@ -301,10 +311,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Verify tumor-normal pair identities')
     parser.add_argument("workdir", help="Directory for intermediary files")
-    parser.add_argument("samplemap", help="Map of BAM file to label")
-    parser.add_argument("reference", help="Reference FASTA sequence")
-    parser.add_argument("regions", help="SNP regions in BED format")
-    parser.add_argument("-f", "--vcffile", help="VCF file")
+    parser.add_argument("samplemap", help="Map of BAM file to label", type=is_valid_file)
+    parser.add_argument("reference", help="Reference FASTA sequence", type=is_valid_file)
+    parser.add_argument("regions", help="SNP regions in BED format", type=is_valid_file)
+    parser.add_argument("-f", "--vcffile", help="VCF file", type=is_valid_file)
     parser.add_argument("-v", "--verbosity", help="Increase logging verbosity",
                         action="count", default=0)
     parser.add_argument("--version", action="version", version="%(prog)s 0.1")
