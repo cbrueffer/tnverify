@@ -118,7 +118,7 @@ def get_file_dims(f):
 
 class tnverify:
 
-    def __init__(self, workdir, regions, vcffile, samplefile, reference, logger=None):
+    def __init__(self, workdir, regions, reference, vcffile=None, samplefile=None, logger=None):
         if logger:
             self.logger = logger
         else:
@@ -137,7 +137,8 @@ class tnverify:
                         "Sample map file: %s\n" % os.path.abspath(self.samplefile) +
                         "Reference file: %s\n" % os.path.abspath(self.reference))
 
-        self.sample_paths, self.sample_labels = self.read_samplefile()
+        if self.samplefile:
+            self.sample_paths, self.sample_labels = self.read_samplefile()
 
         self.bcftools_out = "bcftools_temp.vcf"
 
@@ -303,13 +304,13 @@ if __name__ == "__main__":
     parser.add_argument("samplemap", help="Map of BAM file to label")
     parser.add_argument("reference", help="Reference FASTA sequence")
     parser.add_argument("regions", help="SNP regions in BED format")
-    parser.add_argument("-m", "--matrix", help="Existing SNP matrix")
+    parser.add_argument("-f", "--vcffile", help="VCF file")
     parser.add_argument("-v", "--verbosity", help="Increase logging verbosity",
                         action="count", default=0)
     args = parser.parse_args()
 
-    if not args.matrix:
-        args.matrix = "tempfile"
+    if not args.vcffile:
+        args.vcffile = None
 
     if not args.workdir:
         home = os.path.expanduser("~")
@@ -321,8 +322,8 @@ if __name__ == "__main__":
     logger.debug("Setting logging verbosity: %s" % loglevel)
 
     try:
-        tnv = tnverify(args.workdir, args.regions, args.matrix, args.samplemap,
-                       args.reference, logger=logger)
+        tnv = tnverify(args.workdir, args.regions, args.reference, vcffile=args.vcffile,
+                       samplefile=args.samplemap, logger=logger)
     except KeyboardInterrupt:
         logger.info("Program interrupted by user, exiting.")
     except Exception as e:
