@@ -43,8 +43,7 @@ def vcf2flag(x):
     if x == ".":
         return "NA"
     if not ":" in x:
-        print "Could not parse VCF entry", x
-        raise NotImplementedError
+        raise NotImplementedError("Could not parse VCF entry %s" % x)
     x = x.split(":")[0]
     if x == ".":
         return "0"
@@ -52,13 +51,12 @@ def vcf2flag(x):
         return ("0")
     # if not ":" in x
     #     print "Could not parse VCF entry", x
-    #     raise NotImplementedError
+    #     raise NotImplementedError("Could not parse VCF entry", x)
     if x.startswith("0/"):
         return ("1")
     if len(x) > 2 and x[0] == x[2]:
         return ("2")
-    print x
-    raise NotImplementedError
+    raise NotImplementedError("Don't know how to deal with this VCF entry: %s" % x)
 
 
 def init_logger(level=logging.INFO, logfile=None):
@@ -195,7 +193,13 @@ class tnverify:
                     continue
     
                 # convert vcf entries to simple flags
-                flags = [vcf2flag(x) for x in samples]
+                flags = []
+                try:
+                    for i in range(len(samples)):
+                        f = vcf2flag(samples[i])
+                        flags.append(f)
+                except NotImplementedError as e:
+                    self.logger.debug(str(e))
                 # captures also tri-allelic SNPs (e.g. s738333)
                 # samples = ["2" if x.startswith("1/1") else x for x in samples]
 
