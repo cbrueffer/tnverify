@@ -152,12 +152,23 @@ class tnverify:
 
         self.clusterplot(self.flagmatrix, leaf_labels)
 
-    def call_snps(self, samples, reference, regions, outfile):
+    def call_snps(self, regions, outfile):
         """Run samtools and bcftools to call SNPs."""
-        # samtools mpileup -IguDB -f $ref -l $regions ${BamDir}/${samples} | bcftools view -vcg - > ${OutDir}/result-contralat.txt"
-        samtools_cmd = "samtools mpileup -IguDB -f %s -l %s %s | bcftools view -vcg - > %s" % (reference, regions, " ".join(samples), outfile)
+        # -I           do not perform indel calling
+        # -g           generate BCF output (genotype likelihoods)
+        # -u           generate uncompressed BCF output
+        # -D           output per-sample DP in BCF (require -g/-u)
+        # -B           disable BAQ computation
+        samtools_cmd = "samtools mpileup -IguDB -f %s -l %s %s" % (self.reference,
+                                                                   regions,
+                                                                   " ".join(self.sample_paths))
+        # -v        output potential variant sites only (force -c)
+        # -c        SNP calling (force -e)
+        # -g        call genotypes at variant sites (force -c)
+        bcftools_cmd = "bcftools view -vcg - > %s" % outfile
 
-        exec_and_log(samtools_cmd, this.logger)
+        exec_cmd = "|".join([samtools_cmd, bcftools_cmd])
+        exec_and_log(exec_cmd, self.logger)
 
     def generate_random_sample(self, length):
         """Return a sample vector with random variant calls."""
