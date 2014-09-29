@@ -252,7 +252,7 @@ class tnverify:
         return sample_paths, sample_labels
 
     def clusterplot(self, snpmatrix, leaf_labels, distmeth="canberra", linkmeth="single",
-                    filename="foo", fileformat="png"):
+                    filename="tnverify_hierarchical_clustering", fileformat="png"):
         """Writes a hierarchical clustering plot."""
         mat = snpmatrix.transpose()
 
