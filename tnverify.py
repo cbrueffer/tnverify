@@ -306,7 +306,7 @@ if __name__ == "__main__":
         tnv = tnverify(args.workdir, args.matrix, args.samplemap,
                        args.reference, logger=logger)
     except KeyboardInterrupt:
-        print "Program interrupted by user, exiting..."
+        logger.info("Program interrupted by user, exiting.")
     except Exception as e:
         import traceback
-        print >>sys.stderr, traceback.format_exc()
+        logger.debug(traceback.format_exc())
