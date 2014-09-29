@@ -139,7 +139,7 @@ class tnverify:
 
         self.sample_paths, self.sample_labels = self.read_samplefile()
 
-        bcftools_out = "bcftools_temp.vcf"
+        self.bcftools_out = "bcftools_temp.vcf"
 
         #call_snps(samplelist, reference, regions, outfile)
     
@@ -154,7 +154,7 @@ class tnverify:
 
         self.clusterplot(self.flagmatrix, leaf_labels)
 
-    def call_snps(self, outfile):
+    def call_snps(self):
         """Run samtools and bcftools to call SNPs."""
         # -I           do not perform indel calling
         # -g           generate BCF output (genotype likelihoods)
@@ -167,7 +167,7 @@ class tnverify:
         # -v        output potential variant sites only (force -c)
         # -c        SNP calling (force -e)
         # -g        call genotypes at variant sites (force -c)
-        bcftools_cmd = "bcftools view -vcg - > %s" % outfile
+        bcftools_cmd = "bcftools view -vcg - > %s" % self.bcftools_out
 
         exec_cmd = "|".join([samtools_cmd, bcftools_cmd])
         exec_and_log(exec_cmd, self.logger)
