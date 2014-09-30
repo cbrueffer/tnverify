@@ -15,6 +15,7 @@ Correctness
 - test samples for depth to make sure they're sufficient for variant calling?
   => maybe better to just document this?
 - threshold for calling two samples paired?
+- What to do if reference or regions used to generate VCF files differ?
 
 
 Related Tools
