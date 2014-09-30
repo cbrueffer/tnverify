@@ -322,7 +322,7 @@ if __name__ == "__main__":
         home = os.path.expanduser("~")
         args.workdir = os.path.join(home, "tnverify_run")
 
-    logfile = os.path.join(args.workdir, "tnverify_log.txt")
+    logfile = os.path.join(args.workdir, "tnverify_run.log")
     loglevel = verbosity_to_loglevel(args.verbosity)
     logger = init_logger(loglevel, logfile)
     logger.debug("Setting logging verbosity: %s" % loglevel)
