@@ -207,7 +207,7 @@ class tnverify:
                 if not format[:2] == "GT":
                     self.logger.debug("Skipping entry with format %s (no genotype found)" % format)
                     continue
-    
+
                 # convert vcf entries to simple flags
                 flags = []
                 try:
@@ -223,7 +223,7 @@ class tnverify:
                 if len(sflags) == 1 and sflags == set(["NA"]):
                     #print "Skipping", flags
                     continue
-    
+
                 valid_count += 1
                 vcfmatrix[k-ncomments, :ncols] = np.asarray(flags)
 
@@ -247,7 +247,7 @@ class tnverify:
 
     def read_samplefile(self):
         """Read and parse the sample map file.
-        
+
         Format: bampath<TAB>label
         """
         sample_paths = []
