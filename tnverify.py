@@ -257,8 +257,8 @@ class tnverify:
                 if line.startswith("#"):
                     continue
                 cols = line.split("\t")
-                sample_paths.append(cols[0])
-                sample_labels.append(cols[1])
+                sample_paths.append(cols[0].strip())
+                sample_labels.append(cols[1].strip())
 
         return sample_paths, sample_labels
 
