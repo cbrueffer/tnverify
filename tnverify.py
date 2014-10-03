@@ -79,22 +79,69 @@ def init_logger(level=logging.INFO, logfile=None):
     return logger
 
 
-def exec_and_log(command, logger=None):
-    """Executes a given commandline and logs the command output to the given logger."""
+def exec_variant_calling_pipeline(samtools_cmd, bcftools_cmd, outfile, logger):
+    """Executes a combination of samtools and bcftools to call variants and
+    produce a VCF file."""
     import subprocess
+    import threading
+    from time import sleep
+    from Queue import Queue, Empty
 
-    try:
-        s = subprocess.Popen(command.split(),
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT)
-        while True:
-            line = s.stdout.readline()
-            if not line:
-                break
-            if logger:
-                logger.info(line.rstrip())
-    except Exception as e:
-        raise e
+    def logq_enqueue(subp, pipe, q):
+        while subp.poll() is None:
+            line = pipe.readline()
+            q.put(line)
+
+    def logq_drain(t1, t2, q, logger):
+        while t1.is_alive() or t2.is_alive() and not q.empty():
+            try:
+                line = q.get_nowait()
+            except Empty:
+                sleep(5)
+            else:
+                if line:
+                    logger.debug(line.rstrip())
+                q.task_done()
+
+    with open(outfile, "w") as vcffile:
+        try:
+            logger.debug("Executing cmdline: %s" % samtools_cmd)
+            samtools = subprocess.Popen(samtools_cmd.split(),
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE)
+            logger.debug("Executing cmdline: %s" % bcftools_cmd)
+            bcftools = subprocess.Popen(bcftools_cmd.split(),
+                                 stdin=samtools.stdout,
+                                 stdout=vcffile,
+                                 stderr=subprocess.PIPE)
+            # Allow samtools to receive a SIGPIPE if bcftools exits.
+            samtools.stdout.close()
+
+            q = Queue()
+            t_samtools = threading.Thread(target=logq_enqueue, args=(samtools, samtools.stderr, q))
+            t_samtools.daemon = True
+            t_bcftools = threading.Thread(target=logq_enqueue, args=(bcftools, bcftools.stderr, q))
+            t_bcftools.daemon = True
+            t_log = threading.Thread(target=logq_drain, args=(t_samtools, t_bcftools, q, logger))
+            t_log.daemon = True
+
+            t_samtools.start()
+            t_bcftools.start()
+            t_log.start()
+
+            t_samtools.join()
+            logger.debug("samtools thread terminated")
+            t_bcftools.join()
+            logger.debug("bcftools thread terminated")
+            t_log.join()
+            logger.debug("log thread terminated")
+
+            exitword = "prematurely" if samtools.returncode < 0 else "successfully"
+            logger.debug("samtools exited %s (exit code: %s)" % (exitword, samtools.returncode))
+            exitword = "prematurely" if bcftools.returncode < 0 else "successfully"
+            logger.debug("bcftools exited %s (exit code: %i)" % (exitword, bcftools.returncode))
+        except:
+            raise
 
 
 def get_file_dims(f):
@@ -117,7 +164,7 @@ def get_file_dims(f):
 
 class tnverify:
 
-    def __init__(self, workdir, regions, reference, bcftools_out="bcftools_temp.vcf",
+    def __init__(self, workdir, regions, reference, bcftools_prefix="bcftools_",
                  vcffile=None, samplefile=None, logger=None):
         if logger:
             self.logger = logger
@@ -125,7 +172,7 @@ class tnverify:
             self.logger = init_logger()
 
         self.workdir = workdir
-        self.bcftools_out = os.path.join(self.workdir, bcftools_out)
+        self.bcftools_prefix = bcftools_prefix
         self.regions = regions
         self.vcffile = vcffile
         self.samplefile = samplefile
@@ -138,36 +185,67 @@ class tnverify:
         self.logger.info("Sample map file: %s" % os.path.abspath(self.samplefile))
         self.logger.info("Reference file: %s" % os.path.abspath(self.reference))
 
-        if self.samplefile:
+        if self.vcffile is not None:
+            self.existing_flagmtx, self.existing_vcflabels = self.vcf2ndarray(self.vcffile)
+
+        if self.samplefile is not None:
             self.sample_paths, self.sample_labels = self.read_samplefile()
-            self.call_snps()
 
-        self.flagmatrix, self.vcfsamplenames = self.vcf2ndarray(self.vcffile)
+            logger.info("Calling SNPs for %i samples: %s" %
+                        (len(self.sample_labels), ", ".join(self.sample_labels)))
 
-        self.overall_flagmtx = self.newcalled_vcf
-        self.overall_leaf_labels = self.sample_labels
+            snpcalling_outfiles = self.call_snps()
+
+            # XXX change sample labels in the VCF file
+
+            mtx_mergelist = []
+            for ofile in snpcalling_outfiles:
+                new_flagmtx, new_leaf_labels = self.vcf2ndarray(ofile)
+                mtx_mergelist.append(new_flagmtx)
+
+            # XXX samples can have differing numbers of SNPs
+            self.newcalled_flagmtx = np.concatenate(mtx_mergelist, axis=1)
+
+        self.overall_flagmtx = np.concatenate(self.newcalled_flagmtx,
+                                              self.existing_flagmtx)
+        self.overall_leaf_labels = self.sample_labels + self.existing_vcflabels
 
         self.filter_uninformative_snps()
         self.add_random_sample()
         self.clusterplot()
 
+
     def call_snps(self):
         """Run samtools and bcftools to call SNPs."""
-        # -I           do not perform indel calling
-        # -g           generate BCF output (genotype likelihoods)
-        # -u           generate uncompressed BCF output
-        # -D           output per-sample DP in BCF (require -g/-u)
-        # -B           disable BAQ computation
-        samtools_cmd = "samtools mpileup -IguDB -f %s -l %s %s" % (self.reference,
-                                                                   self.regions,
-                                                                   " ".join(self.sample_paths))
-        # -v        output potential variant sites only (force -c)
-        # -c        SNP calling (force -e)
-        # -g        call genotypes at variant sites (force -c)
-        bcftools_cmd = "bcftools view -vcg - > %s" % self.bcftools_out
+        vcflist = []
+        for sample, label in zip(self.sample_paths, self.sample_labels):
+            # -I           do not perform indel calling
+            # -g           generate BCF output (genotype likelihoods)
+            # -u           generate uncompressed BCF output
+            # -D           output per-sample DP in BCF (require -g/-u)
+            # -B           disable BAQ computation
+            samtools_cmd = "samtools mpileup -IguDB -f %s -l %s %s" % (self.reference,
+                                                                       self.regions,
+                                                                       sample)
+            # -v        output potential variant sites only (force -c)
+            # -c        SNP calling (force -e)
+            # -g        call genotypes at variant sites (force -c)
+            bcftools_cmd = "bcftools view -vcg -"
 
-        exec_cmd = "|".join([samtools_cmd, bcftools_cmd])
-        exec_and_log(exec_cmd, self.logger)
+            samplebase = os.path.basename(sample)
+            filestem, ext = os.path.splitext(samplebase)
+            outfile = ".".join([filestem, "vcf"])
+
+            self.logger.info("Processing sample: %s" % label)
+            try:
+                exec_variant_calling_pipeline(samtools_cmd, bcftools_cmd, outfile, logger)
+            except Exception as e:
+                self.logger.warn("Problem while processing sample: %s" % str(e))
+            else:
+                vcflist.append(outfile)
+                self.logger.info("Sample %s processed successfully" % label)
+
+        return vcflist
 
     def add_random_sample(self):
         """Adds a sample consisting of random variant calls to the flag
@@ -190,6 +268,7 @@ class tnverify:
         valid_count = 0
         with open(vcffile) as vcf_input:
             nrows, ncols, ncomments = get_file_dims(vcf_input)
+            self.logger.info("Reading VCF file %s with %i samples and %i variations" % (vcffile, ncols, nrows))
 
             vcfmatrix = np.ndarray((nrows, ncols))
             for k, line in enumerate(vcf_input):
@@ -227,7 +306,7 @@ class tnverify:
                 valid_count += 1
                 vcfmatrix[k-ncomments, :ncols] = np.asarray(flags)
 
-        self.logger.info("%i valid variations found" % valid_count)
+        self.logger.info("Found %i valid SNPs in VCF file" % valid_count)
 
         return vcfmatrix, samplenames
 
