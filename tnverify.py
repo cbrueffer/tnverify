@@ -318,7 +318,7 @@ class tnverify:
         invalid_count = 0
         with open(vcffile) as vcf_input:
             nrows, ncols, ncomments = get_file_dims(vcf_input)
-            self.logger.info("Reading VCF file %s with %i samples and %i variations" % (vcffile, ncols, nrows))
+            self.logger.info("Reading VCF file %s containing %i samples and %i variations" % (vcffile, ncols, nrows))
 
             genomepos = []
             vcfmatrix = np.ndarray((nrows, ncols))
