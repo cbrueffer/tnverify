@@ -345,7 +345,10 @@ class tnverify:
                     continue
                 cols = line.split("\t")
                 sample_paths.append(cols[0].strip())
-                sample_labels.append(cols[1].strip())
+                if len(cols) == 2:
+                    sample_labels.append(cols[1].strip())
+                elif len(cols) == 1:
+                    sample_labels.append(cols[0].strip())
 
         return sample_paths, sample_labels
 
