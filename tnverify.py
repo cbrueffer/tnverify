@@ -277,15 +277,15 @@ class tnverify:
                     continue
                 cols = line.rstrip().split("\t")
                 entries = cols[col_sample_start:]
-                format = cols[col_format]
+                fmt = cols[col_format]
 
                 if line.startswith("#"):
                     samplenames = entries
                     continue
 
                 # make sure that GT is always first
-                if not format[:2] == "GT":
-                    #self.logger.debug("Skipping entry with format %s (no genotype found)" % format)
+                if not fmt[:2] == "GT":
+                    #self.logger.debug("Skipping entry with format %s (no genotype found)" % fmt)
                     invalid_count += 1
                     continue
 
