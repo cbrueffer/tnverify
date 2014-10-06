@@ -446,17 +446,30 @@ if __name__ == "__main__":
     import sys
 
     parser = argparse.ArgumentParser(description='Verify tumor-normal pair identities')
-    parser.add_argument("workdir", help="Directory for intermediary files",
+    parser.add_argument("-w", "--workdir", help="Directory for intermediary files",
                         default=os.path.join(os.path.expanduser("~"), "tnverify_run"))
-    parser.add_argument("samplemap", help="Map of BAM file to label", type=is_valid_file)
-    parser.add_argument("reference", help="Reference FASTA sequence", type=is_valid_file)
-    parser.add_argument("regions", help="SNP regions in BED format", type=is_valid_file)
+    parser.add_argument("-s", "--samplemap", help="Map of BAM file to label",
+                        type=is_valid_file, default=None)
+    parser.add_argument("-r", "--reference", help="Reference FASTA sequence",
+                        type=is_valid_file)
+    parser.add_argument("-b", "--bed", help="SNP regions in BED format",
+                        type=is_valid_file)
     parser.add_argument("-f", "--vcffile", help="VCF file", type=is_valid_file,
                        default=None)
     parser.add_argument("-v", "--verbosity", help="Increase logging verbosity",
                         action="count", default=0)
     parser.add_argument("--version", action="version", version="%(prog)s 0.1")
     args = parser.parse_args()
+
+    if args.vcffile is None and args.samplemap is None:
+        parser.error("Either -s/--samplemap or -f/--vcsfile needs to be specified.")
+
+    if args.samplemap is not None:
+        if args.reference is None:
+            parser.error("--reference is required when -s/--samplemap is specified.")
+
+        if args.bed is None:
+            parser.error("--bed is required when -s/--samplemap is specified.")
 
     logfile = os.path.join(args.workdir, "tnverify_run.log")
     loglevel = verbosity_to_loglevel(args.verbosity)
