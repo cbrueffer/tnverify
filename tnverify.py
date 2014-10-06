@@ -41,6 +41,8 @@ VCF_COL_FIRST_SAMPLE = 9
 
 
 def vcf2flag(x):
+    """Converts a VCF genotype (GT) entry into a state 0/1/2; 0 (homozygous
+    reference), 1 (heterozygous) and 2 (homozygous SNP)."""
     if x == ".":
         return "NA"
     if not ":" in x:
