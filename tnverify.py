@@ -102,13 +102,13 @@ def exec_variant_calling_pipeline(samtools_cmd, bcftools_cmd, outfile, logger):
                 sleep(5)
             else:
                 if line:
-                    logger.debug(line.rstrip())
+                    logger.info(line.rstrip())
                 q.task_done()
 
     with open(outfile, "w") as vcffile:
         try:
-            logger.debug("Executing cmdline: %s | %s" % (samtools_cmd,
-                                                         bcftools_cmd))
+            logger.info("Executing cmdline: %s | %s" % (samtools_cmd,
+                                                        bcftools_cmd))
             samtools = subprocess.Popen(samtools_cmd.split(),
                                           stdout=subprocess.PIPE,
                                           stderr=subprocess.PIPE)
