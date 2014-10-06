@@ -406,17 +406,24 @@ class tnverify:
     def clusterplot(self, distmeth="canberra", linkmeth="single",
                     filename="tnverify_hierarchical_clustering", fileformat="png"):
         """Writes a hierarchical clustering plot."""
+        self.logger.debug("Preparing for hierarchical clustering.")
         mat = self.overall_flagmtx.transpose()
 
         dist_matrix = pdist(mat, distmeth)
         linkage_matrix = linkage(dist_matrix, linkmeth)
+
+        self.logger.debug("Creating dendrogram.")
 
         fig = plt.figure()
         plt.clf()
         dendrogram(linkage_matrix, labels=self.overall_leaf_labels,
                    leaf_rotation=45)
 
-        fig.savefig(".".join([filename, fileformat]), format=fileformat)
+        f_out = ".".join([filename, fileformat])
+        outpath = os.path.join(self.workdir, f_out)
+
+        fig.savefig(outpath, format=fileformat)
+        self.logger.info("Dendrogram plot saved to file %s." % outpath)
 
 
 def verbosity_to_loglevel(verbosity, skip=3):
