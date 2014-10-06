@@ -34,6 +34,8 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 from scipy.spatial.distance import pdist
 
 
+VCF_COL_CHROM = 0
+VCF_COL_POS = 1
 VCF_COL_FORMAT = 8
 VCF_COL_FIRST_SAMPLE = 9
 
@@ -190,8 +192,15 @@ class tnverify:
         if self.reference is not None:
             self.logger.info("Reference file: %s" % os.path.abspath(self.reference))
 
+        self.flagmtxall = []
+        self.leaflabelsall = []
+        self.genomeposall = []
+
         if self.vcffile is not None:
-            self.existing_flagmtx, self.existing_vcflabels = self.vcf2ndarray(self.vcffile)
+            flagmtx, vcflabels, genomepos = self.vcf2ndarray(self.vcffile)
+            self.flagmtxall.append(flagmtx)
+            self.leaflabelsall.extend(vcflabels)
+            self.genomeposall.append(genomepos)
 
         if self.samplefile is not None:
             self.sample_paths, self.sample_labels = self.read_samplefile()
@@ -204,16 +213,20 @@ class tnverify:
             # XXX change sample labels in the VCF file
 
             mtx_mergelist = []
-            for ofile in snpcalling_outfiles:
-                new_flagmtx, new_leaf_labels = self.vcf2ndarray(ofile)
-                mtx_mergelist.append(new_flagmtx)
+            for i, ofile in enumerate(snpcalling_outfiles):
+                flagmtx, vcflabels, genomepos = self.vcf2ndarray(ofile)
+                self.flagmtxall.append(flagmtx)
+                self.genomeposall.append(genomepos)
 
-            # XXX samples can have differing numbers of SNPs
-            self.newcalled_flagmtx = np.concatenate(mtx_mergelist, axis=1)
+            self.leaflabelsall.extend(self.sample_labels)
 
-        self.overall_flagmtx = np.concatenate(self.newcalled_flagmtx,
-                                              self.existing_flagmtx)
-        self.overall_leaf_labels = self.sample_labels + self.existing_vcflabels
+        # determine the SNP positions common to all samples
+        gpos_common = self.get_common_genome_positions(self.genomeposall)
+
+        self.overall_flagmtx = self.merge_snpmtx(gpos_common, self.genomeposall,
+                                                 self.flagmtxall)
+
+        self.overall_leaf_labels = self.leaflabelsall
 
         self.filter_uninformative_snps()
         self.add_random_sample()
@@ -252,6 +265,35 @@ class tnverify:
 
         return vcflist
 
+    def get_common_genome_positions(self, genomepos_list):
+        """Returns a set of genome positions common to all SNP matrixes."""
+        gpos_setlist = [set(l_gpos) for l_gpos in genomepos_list]
+        gpos_common = set.intersection(*gpos_setlist)
+        self.logger.info("%i SNPs common to %i samples" % (len(gpos_common),
+                                                      len(genomepos_list)))
+        return gpos_common
+
+    def merge_snpmtx(self, gpos_common, genomepos_list, mtx_list):
+        """Remove SNPs that are not common between all flag matrixes and merge
+        the trimmed matrixes together.  Samples (columns) are append on the
+        right side of the matrix in order of the list mtx_list."""
+        self.logger.info("Creating merged SNP matrix...")
+        for k, (mtx, gpos_list) in enumerate(zip(mtx_list, genomepos_list)):
+            self.logger.debug("Matrix %i contains %i SNPs and %i samples" % (k, mtx.shape[0], mtx.shape[1]))
+            rm_indexes = [i for i, x in enumerate(gpos_list) if x not in gpos_common]
+
+            if len(rm_indexes) > 0:
+                self.logger.info("Matrix %i: deleting %i SNPs" % (k, len(rm_indexes)))
+                mtx_list[k] = np.delete(mtx, rm_indexes, 0)
+                self.logger.info("Matrix %i has new dimensions: %i SNPs and %i samples" % (k, mtx_list[k].shape[0],
+                                                 mtx_list[k].shape[1]))
+            else:
+                self.logger.info("Matrix %i: no changes performed." % k)
+
+        snpmtx_merge = np.concatenate(mtx_list, 1)
+        self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" % snpmtx_merge.shape)
+        return snpmtx_merge
+
     def add_random_sample(self):
         """Adds a sample consisting of random variant calls to the flag
         matrix, and the "random" name to the leaf labels."""
@@ -276,6 +318,7 @@ class tnverify:
             nrows, ncols, ncomments = get_file_dims(vcf_input)
             self.logger.info("Reading VCF file %s with %i samples and %i variations" % (vcffile, ncols, nrows))
 
+            genomepos = []
             vcfmatrix = np.ndarray((nrows, ncols))
             for k, line in enumerate(vcf_input):
                 if line.startswith("##"):
@@ -311,12 +354,14 @@ class tnverify:
                     continue
 
                 valid_count += 1
+                # Identifier for a SNP position. Example: 5:456334 (chrom:pos_on_chrom).
+                genomepos.append(":".join([cols[VCF_COL_CHROM], cols[VCF_COL_POS]]))
                 vcfmatrix[k-ncomments, :ncols] = np.asarray(flags)
 
         self.logger.info("Found %i invalid variants in VCF file" % invalid_count)
         self.logger.info("Found %i valid SNPs in VCF file" % valid_count)
 
-        return vcfmatrix, samplenames
+        return vcfmatrix, samplenames, genomepos
 
     def filter_uninformative_snps(self):
         """Removes uninformative SNPs from the SNP matrix.  A SNP is
