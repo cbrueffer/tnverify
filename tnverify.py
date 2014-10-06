@@ -179,11 +179,16 @@ class tnverify:
         self.reference = reference
 
         self.logger.info("Specified parameters:")
-        self.logger.info("Work directory: %s" % os.path.abspath(self.workdir))
-        self.logger.info("Regions file: %s" % os.path.abspath(self.regions))
-        self.logger.info("VCF file: %s" % os.path.abspath(self.vcffile))
-        self.logger.info("Sample map file: %s" % os.path.abspath(self.samplefile))
-        self.logger.info("Reference file: %s" % os.path.abspath(self.reference))
+        if self.workdir is not None:
+            self.logger.info("Work directory: %s" % os.path.abspath(self.workdir))
+        if self.regions is not None:
+            self.logger.info("Regions file: %s" % os.path.abspath(self.regions))
+        if self.vcffile is not None:
+            self.logger.info("VCF file: %s" % os.path.abspath(self.vcffile))
+        if self.samplefile is not None:
+            self.logger.info("Sample map file: %s" % os.path.abspath(self.samplefile))
+        if self.reference is not None:
+            self.logger.info("Reference file: %s" % os.path.abspath(self.reference))
 
         if self.vcffile is not None:
             self.existing_flagmtx, self.existing_vcflabels = self.vcf2ndarray(self.vcffile)
