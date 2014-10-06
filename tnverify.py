@@ -266,6 +266,7 @@ class tnverify:
         vcfmatrix = None
         samplenames = None
         valid_count = 0
+        invalid_count = 0
         with open(vcffile) as vcf_input:
             nrows, ncols, ncomments = get_file_dims(vcf_input)
             self.logger.info("Reading VCF file %s with %i samples and %i variations" % (vcffile, ncols, nrows))
@@ -284,7 +285,8 @@ class tnverify:
 
                 # make sure that GT is always first
                 if not format[:2] == "GT":
-                    self.logger.debug("Skipping entry with format %s (no genotype found)" % format)
+                    #self.logger.debug("Skipping entry with format %s (no genotype found)" % format)
+                    invalid_count += 1
                     continue
 
                 # convert vcf entries to simple flags
@@ -306,6 +308,7 @@ class tnverify:
                 valid_count += 1
                 vcfmatrix[k-ncomments, :ncols] = np.asarray(flags)
 
+        self.logger.info("Found %i invalid variants in VCF file" % invalid_count)
         self.logger.info("Found %i valid SNPs in VCF file" % valid_count)
 
         return vcfmatrix, samplenames
