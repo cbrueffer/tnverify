@@ -6,6 +6,7 @@ Features
 - input file which lists pairings?
 - Bind everything into one binary
 - possibility to add files to existing analysis
+- Switch for storing mpileups in memory or on disk?
 
 
 Correctness
