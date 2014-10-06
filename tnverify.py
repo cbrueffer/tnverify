@@ -385,6 +385,7 @@ class tnverify:
         sample_paths = []
         sample_labels = []
         with open(self.samplefile, "r") as s:
+            self.logger.debug("Reading sample map file %s." % self.samplefile)
             for line in s:
                 if line.startswith("#"):
                     continue
@@ -394,6 +395,9 @@ class tnverify:
                     sample_labels.append(cols[1].strip())
                 elif len(cols) == 1:
                     sample_labels.append(cols[0].strip())
+
+            self.logger.debug("Read %i samples and %i labels from sample map." %
+                              (len(sample_paths), len(sample_labels)))
 
         return sample_paths, sample_labels
 
