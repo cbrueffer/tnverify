@@ -214,7 +214,6 @@ class tnverify:
 
             # XXX change sample labels in the VCF file
 
-            mtx_mergelist = []
             for i, ofile in enumerate(snpcalling_outfiles):
                 flagmtx, vcflabels, genomepos = self.vcf2ndarray(ofile)
                 self.flagmtxall.append(flagmtx)
