@@ -34,8 +34,8 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 from scipy.spatial.distance import pdist
 
 
-col_format = 8
-col_sample_start = 9
+VCF_COL_FORMAT = 8
+VCF_COL_FIRST_SAMPLE = 9
 
 
 def vcf2flag(x):
@@ -155,7 +155,7 @@ def get_file_dims(f):
             rows += 1
             c = line.rstrip().split("\t")
             if columns == 0:
-                columns = len(c[col_sample_start:])
+                columns = len(c[VCF_COL_FIRST_SAMPLE:])
 
     f.seek(0)
 
@@ -281,8 +281,8 @@ class tnverify:
                 if line.startswith("##"):
                     continue
                 cols = line.rstrip().split("\t")
-                entries = cols[col_sample_start:]
-                fmt = cols[col_format]
+                entries = cols[VCF_COL_FIRST_SAMPLE:]
+                fmt = cols[VCF_COL_FORMAT]
 
                 if line.startswith("#"):
                     samplenames = entries
