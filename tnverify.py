@@ -169,7 +169,7 @@ def get_file_dims(f):
 class tnverify:
 
     def __init__(self, workdir, regions, reference, bcftools_prefix="bcftools_",
-                 vcffile=None, samplefile=None, logger=None):
+                 vcffiles=None, samplefiles=None, logger=None):
         if logger:
             self.logger = logger
         else:
@@ -178,8 +178,8 @@ class tnverify:
         self.workdir = workdir
         self.bcftools_prefix = bcftools_prefix
         self.regions = regions
-        self.vcffile = vcffile
-        self.samplefile = samplefile
+        self.vcffiles = vcffiles
+        self.samplefiles = samplefiles
         self.reference = reference
 
         self.logger.info("Specified parameters:")
@@ -187,10 +187,12 @@ class tnverify:
             self.logger.info("Work directory: %s" % os.path.abspath(self.workdir))
         if self.regions is not None:
             self.logger.info("Regions file: %s" % os.path.abspath(self.regions))
-        if self.vcffile is not None:
-            self.logger.info("VCF file: %s" % os.path.abspath(self.vcffile))
-        if self.samplefile is not None:
-            self.logger.info("Sample map file: %s" % os.path.abspath(self.samplefile))
+        if self.vcffiles is not None:
+            for vfile in self.vcffiles:
+                self.logger.info("VCF file: %s" % os.path.abspath(vfile))
+        if self.samplefiles is not None:
+            for sfile in self.samplefiles:
+                self.logger.info("Sample map file: %s" % os.path.abspath(sfile))
         if self.reference is not None:
             self.logger.info("Reference file: %s" % os.path.abspath(self.reference))
 
@@ -198,28 +200,30 @@ class tnverify:
         self.leaflabelsall = []
         self.genomeposall = []
 
-        if self.vcffile is not None:
-            flagmtx, vcflabels, genomepos = self.vcf2ndarray(self.vcffile)
-            self.flagmtxall.append(flagmtx)
-            self.leaflabelsall.extend(vcflabels)
-            self.genomeposall.append(genomepos)
-
-        if self.samplefile is not None:
-            self.sample_paths, self.sample_labels = self.read_samplefile()
-
-            logger.info("Calling SNPs for %i samples: %s" %
-                        (len(self.sample_labels), ", ".join(self.sample_labels)))
-
-            snpcalling_outfiles = self.call_snps()
-
-            # XXX change sample labels in the VCF file
-
-            for i, ofile in enumerate(snpcalling_outfiles):
-                flagmtx, vcflabels, genomepos = self.vcf2ndarray(ofile)
+        if self.vcffiles is not None:
+            for vfile in self.vcffiles:
+                flagmtx, vcflabels, genomepos = self.vcf2ndarray(vfile)
                 self.flagmtxall.append(flagmtx)
+                self.leaflabelsall.extend(vcflabels)
                 self.genomeposall.append(genomepos)
 
-            self.leaflabelsall.extend(self.sample_labels)
+        if self.samplefiles is not None:
+            for sfile in self.samplefiles:
+                sample_paths, sample_labels = self.read_samplefile(sfile)
+
+                logger.info("Calling SNPs for %i samples: %s" %
+                            (len(sample_labels), ", ".join(sample_labels)))
+
+                snpcalling_outfiles = self.call_snps(sample_paths, sample_labels)
+
+                # XXX change sample labels in the VCF file
+
+                for i, ofile in enumerate(snpcalling_outfiles):
+                    flagmtx, vcflabels, genomepos = self.vcf2ndarray(ofile)
+                    self.flagmtxall.append(flagmtx)
+                    self.genomeposall.append(genomepos)
+
+                self.leaflabelsall.extend(sample_labels)
 
         # determine the SNP positions common to all samples
         gpos_common = self.get_common_genome_positions(self.genomeposall)
@@ -234,10 +238,10 @@ class tnverify:
         self.clusterplot()
 
 
-    def call_snps(self):
+    def call_snps(self, sample_paths, sample_labels):
         """Run samtools and bcftools to call SNPs."""
         vcflist = []
-        for sample, label in zip(self.sample_paths, self.sample_labels):
+        for sample, label in zip(sample_paths, sample_labels):
             # -I           do not perform indel calling
             # -g           generate BCF output (genotype likelihoods)
             # -u           generate uncompressed BCF output
@@ -378,15 +382,15 @@ class tnverify:
         self.logger.debug("SNP matrix after filtering: %i rows, %i cols" %
                           self.overall_flagmtx.shape)
 
-    def read_samplefile(self):
+    def read_samplefile(self, sfile):
         """Read and parse the sample map file.
 
         Format: bampath<TAB>label
         """
         sample_paths = []
         sample_labels = []
-        with open(self.samplefile, "r") as s:
-            self.logger.debug("Reading sample map file %s." % self.samplefile)
+        with open(sfile, "r") as s:
+            self.logger.debug("Reading sample map file %s." % sfile)
             for line in s:
                 if line.startswith("#"):
                     continue
@@ -455,13 +459,13 @@ if __name__ == "__main__":
     parser.add_argument("-w", "--workdir", help="Directory for intermediary files",
                         default=os.path.join(os.path.expanduser("~"), "tnverify_run"))
     parser.add_argument("-s", "--samplemap", help="Map of BAM file to label",
-                        type=is_valid_file, default=None)
+                        type=is_valid_file, default=None, action="append")
     parser.add_argument("-r", "--reference", help="Reference FASTA sequence",
                         type=is_valid_file)
     parser.add_argument("-b", "--bed", help="SNP regions in BED format",
                         type=is_valid_file)
     parser.add_argument("-f", "--vcffile", help="VCF file", type=is_valid_file,
-                       default=None)
+                       default=None, action="append")
     parser.add_argument("-v", "--verbosity", help="Increase logging verbosity",
                         action="count", default=0)
     parser.add_argument("--version", action="version", version="%(prog)s 0.1")
@@ -483,8 +487,8 @@ if __name__ == "__main__":
     logger.debug("Setting logging verbosity: %s" % loglevel)
 
     try:
-        tnv = tnverify(args.workdir, args.regions, args.reference, vcffile=args.vcffile,
-                       samplefile=args.samplemap, logger=logger)
+        tnv = tnverify(args.workdir, args.regions, args.reference, vcffiles=args.vcffile,
+                       samplefiles=args.samplemap, logger=logger)
     except KeyboardInterrupt:
         logger.info("Program interrupted by user, exiting.")
     except Exception as e:
