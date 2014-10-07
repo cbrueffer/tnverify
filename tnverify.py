@@ -487,7 +487,7 @@ if __name__ == "__main__":
     logger.debug("Setting logging verbosity: %s" % loglevel)
 
     try:
-        tnv = tnverify(args.workdir, args.regions, args.reference, vcffiles=args.vcffile,
+        tnv = tnverify(args.workdir, args.bed, args.reference, vcffiles=args.vcffile,
                        samplefiles=args.samplemap, logger=logger)
     except KeyboardInterrupt:
         logger.info("Program interrupted by user, exiting.")
