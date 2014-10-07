@@ -184,17 +184,17 @@ class tnverify:
 
         self.logger.info("Specified parameters:")
         if self.workdir is not None:
-            self.logger.info("Work directory: %s" % os.path.abspath(self.workdir))
+            self.log_filepath(logging.INFO, "Work directory: %s", self.workdir)
         if self.regions is not None:
-            self.logger.info("Regions file: %s" % os.path.abspath(self.regions))
+            self.log_filepath(logging.INFO, "Regions file: %s", self.regions)
         if self.vcffiles is not None:
             for vfile in self.vcffiles:
-                self.logger.info("VCF file: %s" % os.path.abspath(vfile))
+                self.log_filepath(logging.INFO, "VCF file: %s", vfile)
         if self.samplefiles is not None:
             for sfile in self.samplefiles:
-                self.logger.info("Sample map file: %s" % os.path.abspath(sfile))
+                self.log_filepath(logging.INFO, "Sample map file: %s", sfile)
         if self.reference is not None:
-            self.logger.info("Reference file: %s" % os.path.abspath(self.reference))
+            self.log_filepath(logging.INFO, "Reference file: %s", self.reference)
 
         self.flagmtxall = []
         self.leaflabelsall = []
@@ -237,6 +237,16 @@ class tnverify:
         self.add_random_sample()
         self.clusterplot()
 
+    def log_filepath(self, level, messagefmt, relpath):
+        """Logs relpath using messagefmt (format string containing one %s);
+        appends the absolute path of relpath if relpath was not absolute
+        already."""
+        abspath = os.path.abspath(relpath)
+        logmsg = messagefmt % relpath
+        if relpath != abspath:
+            logmsg += " (%s)" % abspath
+
+        self.logger.log(level, logmsg)
 
     def call_snps(self, sample_paths, sample_labels):
         """Run samtools and bcftools to call SNPs."""
