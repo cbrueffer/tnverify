@@ -319,6 +319,7 @@ class tnverify:
         samplenames = None
         valid_count = 0
         invalid_count = 0
+        rate_limiting_limit = 10
         with open(vcffile) as vcf_input:
             nrows, ncols, ncomments = get_file_dims(vcf_input)
             self.logger.info("Reading VCF file %s containing %i samples and %i variations" % (vcffile, ncols, nrows))
@@ -338,8 +339,9 @@ class tnverify:
 
                 # make sure that GT is always first
                 if not fmt[:2] == "GT":
-                    #self.logger.debug("Skipping entry with format %s (no genotype found)" % fmt)
                     invalid_count += 1
+                    if invalid_count < rate_limiting_limit:
+                        self.logger.debug("Skipping entry with format %s (no genotype found)" % fmt)
                     continue
 
                 # convert vcf entries to simple flags
@@ -363,7 +365,7 @@ class tnverify:
                 genomepos.append(":".join([cols[VCF_COL_CHROM], cols[VCF_COL_POS]]))
                 vcfmatrix[k-ncomments, :ncols] = np.asarray(flags)
 
-        self.logger.info("Found %i invalid variants in VCF file" % invalid_count)
+        self.logger.debug("Found %i invalid variants in VCF file" % invalid_count)
         self.logger.info("Found %i valid SNPs in VCF file" % valid_count)
 
         return vcfmatrix, samplenames, genomepos
