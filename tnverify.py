@@ -141,9 +141,11 @@ def exec_variant_calling_pipeline(samtools_cmd, bcftools_cmd, outfile, logger):
             logger.debug("log thread terminated")
 
             exitword = "prematurely" if samtools.returncode < 0 else "successfully"
-            logger.debug("samtools exited %s (exit code: %s)" % (exitword, samtools.returncode))
+            loglvl = logging.WARN if samtools.returncode < 0 else logging.DEBUG
+            logger.log(loglvl, "samtools exited %s (exit code: %s)" % (exitword, samtools.returncode))
             exitword = "prematurely" if bcftools.returncode < 0 else "successfully"
-            logger.debug("bcftools exited %s (exit code: %i)" % (exitword, bcftools.returncode))
+            loglvl = logging.WARN if bcftools.returncode < 0 else logging.DEBUG
+            logger.log(loglvl, "bcftools exited %s (exit code: %i)" % (exitword, bcftools.returncode))
         except:
             raise
 
