@@ -478,6 +478,7 @@ class tnverify:
         plt.clf()
         dendrogram(linkage_matrix, labels=self.overall_leaf_labels,
                    leaf_rotation=45)
+        plt.tight_layout()
 
         f_out = ".".join([filename, fileformat])
         outpath = os.path.join(self.workdir, f_out)
