@@ -318,12 +318,12 @@ class tnverify:
             rm_indexes = [i for i, x in enumerate(gpos_list) if x not in gpos_common]
 
             if len(rm_indexes) > 0:
-                self.logger.info("Matrix %i: deleting %i SNPs" % (k, len(rm_indexes)))
+                self.logger.info("Matrix %i: deleting %i SNPs" % (k+1, len(rm_indexes)))
                 mtx_list[k] = np.delete(mtx, rm_indexes, 0)
-                self.logger.info("Matrix %i has new dimensions: %i SNPs and %i samples" % (k, mtx_list[k].shape[0],
+                self.logger.info("Matrix %i has new dimensions: %i SNPs and %i samples" % (k+1, mtx_list[k].shape[0],
                                                  mtx_list[k].shape[1]))
             else:
-                self.logger.info("Matrix %i: no changes performed." % k)
+                self.logger.info("Matrix %i: no changes performed." % k+1)
 
         snpmtx_merge = np.concatenate(mtx_list, 1)
         self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" % snpmtx_merge.shape)
@@ -343,7 +343,7 @@ class tnverify:
         self.logger.info("Creating merged SNP matrix...")
         for i, (mtx, gpos_list) in enumerate(zip(mtx_list, genomepos_list)):
             new_mtx = np.zeros(shape=(len(gpos_all), mtx.shape[1]))
-            self.logger.debug("Processing matrix %i" % i)
+            self.logger.debug("Processing matrix %i" % i+1)
             for k in range(mtx.shape[0]):
                 idx = gpos_all_idx[gpos_list[k]]
                 new_mtx[idx, :] = mtx[k, :]
