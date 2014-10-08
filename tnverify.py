@@ -516,7 +516,7 @@ if __name__ == "__main__":
     import sys
 
     parser = argparse.ArgumentParser(description='Verify tumor-normal pair identities')
-    parser.add_argument("-w", "--workdir", help="Directory for intermediary files",
+    parser.add_argument("-w", "--workdir", help="Directory for intermediary files (default: %(default)s)",
                         default=os.path.join(os.path.expanduser("~"), "tnverify_run"))
     parser.add_argument("-s", "--samplemap", help="Map of BAM file to label",
                         type=is_valid_file, default=None, action="append")
