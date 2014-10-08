@@ -169,7 +169,8 @@ def get_file_dims(f):
 class tnverify:
 
     def __init__(self, workdir, regions, reference, bcftools_prefix="bcftools_",
-                 vcffiles=None, samplefiles=None, uncalled_as_ref=False, logger=None):
+                 vcffiles=None, samplefiles=None, uncalled_as_ref=False,
+                 exchange_vcf_headers=False, logger=None):
         if logger:
             self.logger = logger
         else:
@@ -182,6 +183,7 @@ class tnverify:
         self.samplefiles = samplefiles
         self.reference = reference
         self.uncalled_as_ref = uncalled_as_ref
+        self.exchange_vcf_headers = exchange_vcf_headers
 
         self.logger.info("Specified parameters:")
         if self.workdir is not None:
@@ -219,12 +221,14 @@ class tnverify:
 
                 snpcalling_outfiles = self.call_snps(sample_paths, sample_labels)
 
-                # XXX change sample labels in the VCF file
-
                 for i, ofile in enumerate(snpcalling_outfiles):
                     flagmtx, vcflabels, genomepos = self.vcf2ndarray(ofile)
                     self.flagmtxall.append(flagmtx)
                     self.genomeposall.append(genomepos)
+
+                    if self.exchange_vcf_headers:
+                        # replace filename with label in VCF file header
+                        self.replace_vcf_sample_label(ofile, sample_labels[i])
 
                 self.leaflabelsall.extend(sample_labels)
 
@@ -241,6 +245,17 @@ class tnverify:
         self.filter_uninformative_snps()
         self.add_random_sample()
         self.clusterplot()
+
+    def replace_vcf_sample_label(self, filename, label):
+        """Replace the sample label (usually the file name) in the VCF header of
+        file with path filename with label."""
+        self.logger.debug("Replacing VCF sample label in file %s" % (filename))
+        s = open(filename, 'r').read()
+        s = s.replace(filename, label)
+        f = open(filename, 'w')
+        f.write(s)
+        f.flush()
+        f.close()
 
     def log_filepath(self, level, messagefmt, relpath):
         """Logs relpath using messagefmt (format string containing one %s);
@@ -512,6 +527,8 @@ if __name__ == "__main__":
                         action="count", default=0)
     parser.add_argument("-u", "--uncalled-as-ref", help="Treat uncalled variants as homozygous to the reference allele",
                         action="store_true", default=False)
+    parser.add_argument("-x", "--exchange-vcf-headers", help="Replace the sample header with the label provided in sample map",
+                        action="store_true", default=False)
     parser.add_argument("--version", action="version", version="%(prog)s 0.1")
     args = parser.parse_args()
 
@@ -532,7 +549,8 @@ if __name__ == "__main__":
 
     try:
         tnv = tnverify(workdir=args.workdir, regions=args.bed, reference=args.reference, vcffiles=args.vcffile,
-                       samplefiles=args.samplemap, uncalled_as_ref=args.uncalled_as_ref, logger=logger)
+                       samplefiles=args.samplemap, uncalled_as_ref=args.uncalled_as_ref,
+                       exchange_vcf_headers=args.exchange_vcf_headers, logger=logger)
     except KeyboardInterrupt:
         logger.info("Program interrupted by user, exiting.")
     except Exception as e:
