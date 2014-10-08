@@ -518,14 +518,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Verify tumor-normal pair identities')
     parser.add_argument("-w", "--workdir", help="Directory for intermediary files (default: %(default)s)",
                         default=os.path.join(os.path.expanduser("~"), "tnverify_run"))
-    parser.add_argument("-s", "--samplemap", help="Map of BAM file to label",
+    parser.add_argument("-s", "--samplemap", help="Map of BAM file to label. " +
+                        "This option can be applied multiple times to provide " +
+                        "multiple sample maps.",
                         type=is_valid_file, default=None, action="append")
     parser.add_argument("-r", "--reference", help="Reference FASTA sequence",
                         type=is_valid_file)
     parser.add_argument("-b", "--bed", help="SNP regions in BED format",
                         type=is_valid_file)
-    parser.add_argument("-f", "--vcffile", help="VCF file", type=is_valid_file,
-                       default=None, action="append")
+    parser.add_argument("-f", "--vcffile", help="VCF file (i.e., from previous " +
+                        "runs of %(prog)s) to include in the analysis.  This " +
+                        "option can be applied multiple times to include an " +
+                        "arbritrary number of existing VCF files in the analysis.",
+                        type=is_valid_file, default=None, action="append")
     parser.add_argument("-v", "--verbosity", help="Increase logging verbosity",
                         action="count", default=0)
     parser.add_argument("-u", "--uncalled-as-ref", help="Treat uncalled variants as homozygous to the reference allele",
