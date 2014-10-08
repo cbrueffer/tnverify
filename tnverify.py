@@ -169,7 +169,7 @@ def get_file_dims(f):
 class tnverify:
 
     def __init__(self, workdir, regions, reference, bcftools_prefix="bcftools_",
-                 vcffiles=None, samplefiles=None, logger=None):
+                 vcffiles=None, samplefiles=None, uncalled_as_ref=False, logger=None):
         if logger:
             self.logger = logger
         else:
@@ -181,6 +181,7 @@ class tnverify:
         self.vcffiles = vcffiles
         self.samplefiles = samplefiles
         self.reference = reference
+        self.uncalled_as_ref = uncalled_as_ref
 
         self.logger.info("Specified parameters:")
         if self.workdir is not None:
@@ -195,6 +196,8 @@ class tnverify:
                 self.log_filepath(logging.INFO, "Sample map file: %s", sfile)
         if self.reference is not None:
             self.log_filepath(logging.INFO, "Reference file: %s", self.reference)
+        if self.uncalled_as_ref:
+            self.logger.info("Treating uncalled positions in BED file as homozygous reference.")
 
         self.flagmtxall = []
         self.leaflabelsall = []
@@ -225,10 +228,12 @@ class tnverify:
 
                 self.leaflabelsall.extend(sample_labels)
 
-        # determine the SNP positions common to all samples
-        gpos_common = self.get_common_genome_positions(self.genomeposall)
-
-        self.overall_flagmtx = self.merge_snpmtx(gpos_common, self.genomeposall,
+        if self.uncalled_as_ref:
+            self.overall_flagmtx = self.merge_snpmtx_uncalled_as_zero(self.genomeposall, self.flagmtxall)
+        else:
+            # determine the SNP positions common to all samples
+            gpos_common = self.get_common_genome_positions(self.genomeposall)
+            self.overall_flagmtx = self.merge_snpmtx(gpos_common, self.genomeposall,
                                                  self.flagmtxall)
 
         self.overall_leaf_labels = self.leaflabelsall
@@ -304,6 +309,31 @@ class tnverify:
                                                  mtx_list[k].shape[1]))
             else:
                 self.logger.info("Matrix %i: no changes performed." % k)
+
+        snpmtx_merge = np.concatenate(mtx_list, 1)
+        self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" % snpmtx_merge.shape)
+        return snpmtx_merge
+
+    def merge_snpmtx_uncalled_as_zero(self, genomepos_list, mtx_list):
+        """Merge the matrixes by treating genome positions where no variant was
+        called as homozygous to the reference allele (state 0)."""
+        import itertools
+
+        self.logger.debug("Determining all genome positions with variant calls.")
+        gpos_all = set(itertools.chain.from_iterable(genomepos_list))
+        gpos_all_idx = {x: i for i, x in enumerate(gpos_all)}
+
+        # Copy variant calls from their original matrixes into the right
+        # positions in the new, bigger matrix.
+        self.logger.info("Creating merged SNP matrix...")
+        for i, (mtx, gpos_list) in enumerate(zip(mtx_list, genomepos_list)):
+            new_mtx = np.zeros(shape=(len(gpos_all), mtx.shape[1]))
+            self.logger.debug("Processing matrix %i" % i)
+            for k in range(mtx.shape[0]):
+                idx = gpos_all_idx[gpos_list[k]]
+                new_mtx[idx, :] = mtx[k, :]
+
+            mtx_list[i] = new_mtx
 
         snpmtx_merge = np.concatenate(mtx_list, 1)
         self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" % snpmtx_merge.shape)
@@ -480,6 +510,8 @@ if __name__ == "__main__":
                        default=None, action="append")
     parser.add_argument("-v", "--verbosity", help="Increase logging verbosity",
                         action="count", default=0)
+    parser.add_argument("-u", "--uncalled-as-ref", help="Treat uncalled variants as homozygous to the reference allele",
+                        action="store_true", default=False)
     parser.add_argument("--version", action="version", version="%(prog)s 0.1")
     args = parser.parse_args()
 
@@ -499,8 +531,8 @@ if __name__ == "__main__":
     logger.debug("Setting logging verbosity: %s" % loglevel)
 
     try:
-        tnv = tnverify(args.workdir, args.bed, args.reference, vcffiles=args.vcffile,
-                       samplefiles=args.samplemap, logger=logger)
+        tnv = tnverify(workdir=args.workdir, regions=args.bed, reference=args.reference, vcffiles=args.vcffile,
+                       samplefiles=args.samplemap, uncalled_as_ref=args.uncalled_as_ref, logger=logger)
     except KeyboardInterrupt:
         logger.info("Program interrupted by user, exiting.")
     except Exception as e:
