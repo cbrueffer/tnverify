@@ -258,6 +258,7 @@ class tnverify:
         f.write(s)
         f.flush()
         f.close()
+        s.close()
 
     def log_filepath(self, level, messagefmt, relpath):
         """Logs relpath using messagefmt (format string containing one %s);
