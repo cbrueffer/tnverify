@@ -9,3 +9,4 @@ apt-get install -y vim
 apt-get install -y samtools
 pip install pysam
 pip install pyinstaller
+pip install psutil
