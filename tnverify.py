@@ -172,7 +172,7 @@ class tnverify:
 
     def __init__(self, workdir, regions, reference, bcftools_prefix="bcftools_",
                  vcffiles=None, samplefiles=None, uncalled_as_ref=False,
-                 exchange_vcf_headers=False, logger=None):
+                 exchange_vcf_headers=False, merge_n_mtx=5, logger=None):
         if logger:
             self.logger = logger
         else:
@@ -186,6 +186,7 @@ class tnverify:
         self.reference = reference
         self.uncalled_as_ref = uncalled_as_ref
         self.exchange_vcf_headers = exchange_vcf_headers
+        self.merge_n_mtx = merge_n_mtx
 
         self.logger.info("Specified parameters:")
         if self.workdir is not None:
@@ -213,6 +214,7 @@ class tnverify:
                 self.flagmtxall.append(flagmtx)
                 self.leaflabelsall.extend(vcflabels)
                 self.genomeposall.append(genomepos)
+                self.merge_n_matrixes()
 
         if self.samplefiles is not None:
             for sfile in self.samplefiles:
@@ -227,6 +229,7 @@ class tnverify:
                     flagmtx, vcflabels, genomepos = self.vcf2ndarray(ofile)
                     self.flagmtxall.append(flagmtx)
                     self.genomeposall.append(genomepos)
+                    self.merge_n_matrixes()
 
                     if self.exchange_vcf_headers:
                         # replace filename with label in VCF file header
@@ -234,14 +237,10 @@ class tnverify:
 
                 self.leaflabelsall.extend(sample_labels)
 
-        if self.uncalled_as_ref:
-            self.overall_flagmtx = self.merge_snpmtx_uncalled_as_zero(self.genomeposall, self.flagmtxall)
-        else:
-            # determine the SNP positions common to all samples
-            gpos_common = self.get_common_genome_positions(self.genomeposall)
-            self.overall_flagmtx = self.merge_snpmtx(gpos_common, self.genomeposall,
-                                                 self.flagmtxall)
+        # merge the remaining matrixes, if necessary
+        self.merge_n_matrixes(force=True)
 
+        self.overall_flagmtx = self.flagmtxall[0]
         self.overall_leaf_labels = self.leaflabelsall
 
         self.filter_uninformative_snps()
@@ -311,6 +310,20 @@ class tnverify:
                                                       len(genomepos_list)))
         return gpos_common
 
+    def merge_n_matrixes(self, force=False):
+        """If n matrixes have been read in, merge them."""
+        if len(self.flagmtxall) == self.merge_n_mtx or (force and len(self.flagmtxall) > 1):
+            if self.uncalled_as_ref:
+                flagmtx, gpos = self.merge_snpmtx_uncalled_as_zero(self.genomeposall, self.flagmtxall)
+            else:
+                # determine the SNP positions common to all samples
+                gpos_common = self.get_common_genome_positions(self.genomeposall)
+                flagmtx, gpos = self.merge_snpmtx(gpos_common, self.genomeposall,
+                                                  self.flagmtxall)
+
+            self.genomeposall = [gpos]
+            self.flagmtxall = [flagmtx]
+
     def merge_snpmtx(self, gpos_common, genomepos_list, mtx_list):
         """Remove SNPs that are not common between all flag matrixes and merge
         the trimmed matrixes together.  Samples (columns) are append on the
@@ -330,7 +343,7 @@ class tnverify:
 
         snpmtx_merge = np.concatenate(mtx_list, 1)
         self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" % snpmtx_merge.shape)
-        return snpmtx_merge
+        return snpmtx_merge, gpos_common
 
     def merge_snpmtx_uncalled_as_zero(self, genomepos_list, mtx_list):
         """Merge the matrixes by treating genome positions where no variant was
@@ -355,7 +368,7 @@ class tnverify:
 
         snpmtx_merge = np.concatenate(mtx_list, 1)
         self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" % snpmtx_merge.shape)
-        return snpmtx_merge
+        return snpmtx_merge, gpos_all
 
     def add_random_sample(self):
         """Adds a sample consisting of random variant calls to the flag
@@ -532,6 +545,9 @@ if __name__ == "__main__":
                         "option can be applied multiple times to include an " +
                         "arbritrary number of existing VCF files in the analysis.",
                         type=is_valid_file, default=None, action="append")
+    parser.add_argument("-m", "--merge-n-mtx", help="Merge m matrixes after they have " +
+                        "been read in. (default: %(default)s)",
+                        type=int, default=5)
     parser.add_argument("-v", "--verbosity", help="Increase logging verbosity",
                         action="count", default=0)
     parser.add_argument("-u", "--uncalled-as-ref", help="Treat uncalled variants as homozygous to the reference allele",
@@ -559,7 +575,8 @@ if __name__ == "__main__":
     try:
         tnv = tnverify(workdir=args.workdir, regions=args.bed, reference=args.reference, vcffiles=args.vcffile,
                        samplefiles=args.samplemap, uncalled_as_ref=args.uncalled_as_ref,
-                       exchange_vcf_headers=args.exchange_vcf_headers, logger=logger)
+                       exchange_vcf_headers=args.exchange_vcf_headers,
+                       merge_n_mtx=args.merge_n_mtx, logger=logger)
     except KeyboardInterrupt:
         logger.info("Program interrupted by user, exiting.")
     except Exception as e:
