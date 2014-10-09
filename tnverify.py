@@ -233,7 +233,7 @@ class tnverify:
 
                     if self.exchange_vcf_headers:
                         # replace filename with label in VCF file header
-                        self.replace_vcf_sample_label(ofile, sample_labels[i])
+                        self.replace_vcf_sample_label(ofile, sample_paths[i], sample_labels[i])
 
                 self.leaflabelsall.extend(sample_labels)
 
@@ -247,17 +247,17 @@ class tnverify:
         self.add_random_sample()
         self.clusterplot()
 
-    def replace_vcf_sample_label(self, filename, label):
-        """Replace the sample label (usually the file name) in the VCF header of
-        file with path filename with label."""
-        self.logger.debug("Replacing VCF sample label in file %s" % (filename))
-        s = open(filename, 'r').read()
-        s = s.replace(filename, label)
-        f = open(filename, 'w')
-        f.write(s)
-        f.flush()
-        f.close()
-        s.close()
+    def replace_vcf_sample_label(self, vcffile, bamfile, label):
+        """Replace the sample label (usually the BAM filename) in the VCF header of
+        file with path vcffile with label."""
+        import fileinput
+
+        self.logger.debug("Replacing VCF sample label in file %s" % vcffile)
+
+        vfile = fileinput.input(vcffile, inplace=True)
+        for line in vfile:
+            print line.replace(bamfile, label),
+        vfile.close()
 
     def log_filepath(self, level, messagefmt, relpath):
         """Logs relpath using messagefmt (format string containing one %s);
