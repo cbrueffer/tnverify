@@ -170,7 +170,7 @@ def get_file_dims(f):
 
 class tnverify:
 
-    def __init__(self, workdir, regions, reference, bcftools_prefix="bcftools_",
+    def __init__(self, workdir, regionsfile, reference, bcftools_prefix="bcftools_",
                  vcffiles=None, samplefiles=None, uncalled_as_ref=False,
                  exchange_vcf_headers=False, merge_n_mtx=5, logger=None):
         if logger:
@@ -180,7 +180,7 @@ class tnverify:
 
         self.workdir = workdir
         self.bcftools_prefix = bcftools_prefix
-        self.regions = regions
+        self.regionsfile = regionsfile
         self.vcffiles = vcffiles
         self.samplefiles = samplefiles
         self.reference = reference
@@ -191,8 +191,8 @@ class tnverify:
         self.logger.info("Specified parameters:")
         if self.workdir is not None:
             self.log_filepath(logging.INFO, "Work directory: %s", self.workdir)
-        if self.regions is not None:
-            self.log_filepath(logging.INFO, "Regions file: %s", self.regions)
+        if self.regionsfile is not None:
+            self.log_filepath(logging.INFO, "Regions file: %s", self.regionsfile)
         if self.vcffiles is not None:
             for vfile in self.vcffiles:
                 self.log_filepath(logging.INFO, "VCF file: %s", vfile)
@@ -280,7 +280,7 @@ class tnverify:
             # -D           output per-sample DP in BCF (require -g/-u)
             # -B           disable BAQ computation
             samtools_cmd = "samtools mpileup -IguDB -f %s -l %s %s" % (self.reference,
-                                                                       self.regions,
+                                                                       self.regionsfile,
                                                                        sample)
             # -v        output potential variant sites only (force -c)
             # -c        SNP calling (force -e)
@@ -573,7 +573,7 @@ if __name__ == "__main__":
     logger.debug("Setting logging verbosity: %s" % loglevel)
 
     try:
-        tnv = tnverify(workdir=args.workdir, regions=args.bed, reference=args.reference, vcffiles=args.vcffile,
+        tnv = tnverify(workdir=args.workdir, regionsfile=args.bed, reference=args.reference, vcffiles=args.vcffile,
                        samplefiles=args.samplemap, uncalled_as_ref=args.uncalled_as_ref,
                        exchange_vcf_headers=args.exchange_vcf_headers,
                        merge_n_mtx=args.merge_n_mtx, logger=logger)
