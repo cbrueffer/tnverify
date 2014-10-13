@@ -168,24 +168,6 @@ def get_file_dims(f):
     return rows, columns, comments
 
 
-def intersect1dmulti(arrays, assume_unique=False):
-    """Find the intersection of any number of 1D arrays.
-    Return the sorted, unique values that are in all of the input arrays.
-    Adapted from numpy.lib.arraysetops.intersect1d"""
-    N = len(arrays)
-    if N == 0:
-        return np.asarray(arrays)
-    arrays = list(arrays)  # allow assignment
-    if not assume_unique:
-        arrays = map(np.unique, arrays)
-    aux = np.concatenate(arrays)  # one long 1D array
-    aux.sort()  # sorted
-    if N == 1:
-        return aux
-    shift = N-1
-    return aux[aux[shift:] == aux[:-shift]]
-
-
 class tnverify:
 
     def __init__(self, workdir, regionsfile, reference, bcftools_prefix="bcftools_",
@@ -322,7 +304,8 @@ class tnverify:
 
     def get_common_genome_positions(self, genomepos_list):
         """Returns a set of genome positions common to all SNP matrixes."""
-        gpos_common = intersect1dmulti(genomepos_list)
+        from functools import reduce
+        gpos_common = reduce(np.intersect1d, genomepos_list)
         self.logger.info("%i SNPs common to %i samples" % (len(gpos_common),
                                                       len(genomepos_list)))
         return gpos_common
