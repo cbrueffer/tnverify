@@ -418,9 +418,7 @@ class tnverify:
                 # convert vcf entries to simple flags
                 flags = []
                 try:
-                    for i in range(len(entries)):
-                        f = vcf2flag(entries[i])
-                        flags.append(f)
+                    flags = map(vcf2flag, entries)
                 except NotImplementedError as e:
                     self.logger.debug(str(e))
                 # captures also tri-allelic SNPs (e.g. s738333)
