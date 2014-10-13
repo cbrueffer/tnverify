@@ -330,7 +330,7 @@ class tnverify:
         right side of the matrix in order of the list mtx_list."""
         self.logger.info("Creating merged SNP matrix...")
         for k, (mtx, gpos_list) in enumerate(zip(mtx_list, genomepos_list)):
-            self.logger.debug("Matrix %i contains %i SNPs and %i samples" % (k, mtx.shape[0], mtx.shape[1]))
+            self.logger.debug("Matrix %i contains %i SNPs and %i samples" % (k+1, mtx.shape[0], mtx.shape[1]))
             rm_indexes = [i for i, x in enumerate(gpos_list) if x not in gpos_common]
 
             if len(rm_indexes) > 0:
