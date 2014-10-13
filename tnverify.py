@@ -168,6 +168,24 @@ def get_file_dims(f):
     return rows, columns, comments
 
 
+def intersect1dmulti(arrays, assume_unique=False):
+    """Find the intersection of any number of 1D arrays.
+    Return the sorted, unique values that are in all of the input arrays.
+    Adapted from numpy.lib.arraysetops.intersect1d"""
+    N = len(arrays)
+    if N == 0:
+        return np.asarray(arrays)
+    arrays = list(arrays)  # allow assignment
+    if not assume_unique:
+        arrays = map(np.unique, arrays)
+    aux = np.concatenate(arrays)  # one long 1D array
+    aux.sort()  # sorted
+    if N == 1:
+        return aux
+    shift = N-1
+    return aux[aux[shift:] == aux[:-shift]]
+
+
 class tnverify:
 
     def __init__(self, workdir, regionsfile, reference, bcftools_prefix="bcftools_",
@@ -304,8 +322,7 @@ class tnverify:
 
     def get_common_genome_positions(self, genomepos_list):
         """Returns a set of genome positions common to all SNP matrixes."""
-        gpos_setlist = [set(l_gpos) for l_gpos in genomepos_list]
-        gpos_common = set.intersection(*gpos_setlist)
+        gpos_common = intersect1dmulti(genomepos_list)
         self.logger.info("%i SNPs common to %i samples" % (len(gpos_common),
                                                       len(genomepos_list)))
         return gpos_common
@@ -331,10 +348,11 @@ class tnverify:
         self.logger.info("Creating merged SNP matrix...")
         for k, (mtx, gpos_list) in enumerate(zip(mtx_list, genomepos_list)):
             self.logger.debug("Matrix %i contains %i SNPs and %i samples" % (k+1, mtx.shape[0], mtx.shape[1]))
-            rm_indexes = [i for i, x in enumerate(gpos_list) if x not in gpos_common]
+            rm_indexes = np.where(np.in1d(gpos_list, gpos_common) == False)[0]
 
             if len(rm_indexes) > 0:
-                self.logger.info("Matrix %i: deleting %i SNPs" % (k+1, len(rm_indexes)))
+                self.logger.info("Matrix %i: deleting %i SNPs" % (k+1,
+                                                                  rm_indexes.shape[0]))
                 mtx_list[k] = np.delete(mtx, rm_indexes, 0)
                 self.logger.info("Matrix %i has new dimensions: %i SNPs and %i samples" % (k+1, mtx_list[k].shape[0],
                                                  mtx_list[k].shape[1]))
@@ -395,7 +413,7 @@ class tnverify:
             nrows, ncols, ncomments = get_file_dims(vcf_input)
             self.logger.info("Reading VCF file %s containing %i samples and %i variations" % (vcffile, ncols, nrows))
 
-            genomepos = []
+            genomepos = np.empty(shape=nrows, dtype=np.dtype('S13'))  # 13 char string
             vcfmatrix = np.ndarray((nrows, ncols))
             for k, line in enumerate(vcf_input):
                 if line.startswith("##"):
@@ -431,7 +449,7 @@ class tnverify:
 
                 valid_count += 1
                 # Identifier for a SNP position. Example: 5:456334 (chrom:pos_on_chrom).
-                genomepos.append(":".join([cols[VCF_COL_CHROM], cols[VCF_COL_POS]]))
+                genomepos[k-ncomments] = ":".join([cols[VCF_COL_CHROM], cols[VCF_COL_POS]])
                 vcfmatrix[k-ncomments, :ncols] = np.asarray(flags)
 
         self.logger.debug("Found %i invalid variants in VCF file" % invalid_count)
@@ -449,6 +467,7 @@ class tnverify:
         self.logger.debug("SNP matrix before filtering: %i rows, %i cols" %
                           self.overall_flagmtx.shape)
         self.overall_flagmtx = np.delete(self.overall_flagmtx, uninf_rows, 0)
+        self.overall_genomepos = np.delete(self.overall_flagmtx, uninf_rows)
         self.logger.info("Removed %i uninformative SNPs." % len(uninf_rows))
         self.logger.debug("SNP matrix after filtering: %i rows, %i cols" %
                           self.overall_flagmtx.shape)
