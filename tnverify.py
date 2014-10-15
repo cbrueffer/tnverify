@@ -532,20 +532,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Verify tumor-normal pair identities')
     parser.add_argument("-w", "--workdir", help="Directory for intermediary files (default: %(default)s)",
                         default=os.path.join(os.path.expanduser("~"), "tnverify_run"))
-    parser.add_argument("-s", "--samplemap", help="Map of BAM file to label. " +
-                        "This option can be applied multiple times to provide " +
+    parser.add_argument("-s", "--samplemap", help="Map of BAM file to label. "
+                        "This option can be applied multiple times to provide "
                         "multiple sample maps.",
                         type=is_valid_file, default=None, action="append")
     parser.add_argument("-r", "--reference", help="Reference FASTA sequence",
                         type=is_valid_file)
     parser.add_argument("-b", "--bed", help="SNP regions in BED format",
                         type=is_valid_file)
-    parser.add_argument("-f", "--vcffile", help="VCF file (i.e., from previous " +
-                        "runs of %(prog)s) to include in the analysis.  This " +
-                        "option can be applied multiple times to include an " +
+    parser.add_argument("-f", "--vcffile", help="VCF file (i.e., from previous "
+                        "runs of %(prog)s) to include in the analysis.  This "
+                        "option can be applied multiple times to include an "
                         "arbritrary number of existing VCF files in the analysis.",
                         type=is_valid_file, default=None, action="append")
-    parser.add_argument("-m", "--merge-n-mtx", help="Merge m matrixes after they have " +
+    parser.add_argument("-m", "--merge-n-mtx", help="Merge m matrixes after they have "
                         "been read in. (default: %(default)s)",
                         type=int, default=5)
     parser.add_argument("-v", "--verbosity", help="Increase logging verbosity",
