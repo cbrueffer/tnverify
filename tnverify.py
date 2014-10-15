@@ -168,6 +168,19 @@ def get_file_dims(f):
     return rows, columns, comments
 
 
+class snp:
+    def __init__(self, name, chrom, start, end, ref_af, var_af):
+        self.name = name
+        self.chrom = chrom
+        self.start = start
+        self.end = end
+        self.ref_af = float(ref_af)
+        self.var_af = float(var_af)
+
+    def __str__(self):
+        return ":".join([self.chrom, self.end])
+
+
 class tnverify:
 
     def __init__(self, workdir, regionsfile, reference, bcftools_prefix="bcftools_",
@@ -241,9 +254,22 @@ class tnverify:
         self.merge_n_matrixes(force=True)
 
         self.overall_flagmtx = self.flagmtxall[0]
+        self.overall_genomepos = self.genomeposall[0]
         self.overall_leaf_labels = self.leaflabelsall
 
         self.filter_uninformative_snps()
+
+        self.regions = self.read_regionsfile(self.regionsfile)
+
+        regions_present = np.in1d(map(str, self.regions), self.overall_genomepos)
+        self.keptregions = self.regions[np.where(regions_present == True)]
+        if len(self.keptregions) != len(self.overall_genomepos):
+            self.logger.warn("Mismatch between number of called SNPs (%i) and "
+                             "number of regions (%i)!" %
+                             (len(self.overall_genomepos),
+                              len(self.keptregions)))
+        self.logger.debug("Kept regions from regionsfile: %i" % len(self.keptregions))
+
         self.add_random_sample()
         self.clusterplot()
 
@@ -375,8 +401,12 @@ class tnverify:
         """Adds a sample consisting of random variant calls to the flag
         matrix, and the "random" name to the leaf labels."""
         self.logger.info("Adding a random sample to the SNP matrix.")
-        length = self.overall_flagmtx.shape[0]  # number of rows
-        rsamp = np.random.randint(0, 3, size=(length, 1))
+        # random sample based on the Hardy-Weinberg proportions at each location
+        rsamp = map(lambda r: np.random.choice([0, 1, 2], p=[r.ref_af ** 2,
+                                                             2 * r.ref_af * r.var_af,
+                                                             r.var_af ** 2]),
+                    self.keptregions)
+        rsamp = np.array(rsamp).reshape((len(self.keptregions), 1))
         self.overall_flagmtx = np.append(self.overall_flagmtx, rsamp, axis=1)
         self.overall_leaf_labels.append("random")
 
@@ -450,10 +480,31 @@ class tnverify:
         self.logger.debug("SNP matrix before filtering: %i rows, %i cols" %
                           self.overall_flagmtx.shape)
         self.overall_flagmtx = np.delete(self.overall_flagmtx, uninf_rows, 0)
-        self.overall_genomepos = np.delete(self.overall_flagmtx, uninf_rows)
+        self.overall_genomepos = np.delete(self.overall_genomepos, uninf_rows)
         self.logger.info("Removed %i uninformative SNPs." % len(uninf_rows))
         self.logger.debug("SNP matrix after filtering: %i rows, %i cols" %
                           self.overall_flagmtx.shape)
+
+    def read_regionsfile(self, rfile):
+        """Read and parse the regions file.  Returns a list of snp
+        objects."""
+        regions = []
+        with open(rfile, 'r') as r:
+            self.logger.debug("Reading regions file %s." % rfile)
+            for line in r:
+                if line.startswith('#'):
+                    continue
+                cols = line.split('\t')
+                freqs = cols[4].split(',')
+                ref_af = freqs[0]  # always the first element
+                var_af = freqs[1]  # second element and following
+
+                regions.append(snp(cols[3], cols[0], cols[1],
+                                cols[2], ref_af, var_af))
+
+        regions = np.array(regions)
+        self.logger.debug("Read %i SNPs from regions file." % regions.shape[0])
+        return regions
 
     def read_samplefile(self, sfile):
         """Read and parse the sample map file.
