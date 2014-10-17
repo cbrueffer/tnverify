@@ -25,6 +25,11 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
+"""
+TNVerify is a tool to verify whether two samples, usually tumor/normal
+pairs, originate from the same patient.
+"""
+
 import logging
 import numpy as np
 import matplotlib
