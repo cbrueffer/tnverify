@@ -569,10 +569,11 @@ def is_valid_file(path):
     try:
         testfile = open(path, "r")
         testfile.close()
-        return path
     except:
         msg = "Cannot open file %s!" % path
         raise argparse.ArgumentTypeError(msg)
+    else:
+        return path
 
 
 if __name__ == "__main__":
