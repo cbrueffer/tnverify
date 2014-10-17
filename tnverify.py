@@ -51,14 +51,14 @@ def vcf2flag(x):
     if x == ".":
         return "0"
     if x == "0/0":
-        return ("0")
+        return "0"
     # if not ":" in x
     #     print "Could not parse VCF entry", x
     #     raise NotImplementedError("Could not parse VCF entry", x)
     if x.startswith("0/"):
-        return ("1")
+        return "1"
     if len(x) > 2 and x[0] == x[2]:
-        return ("2")
+        return "2"
     raise NotImplementedError("Don't know how to deal with this VCF entry: %s" % x)
 
 
@@ -168,7 +168,7 @@ def get_file_dims(f):
     return rows, columns, comments
 
 
-class snp:
+class SNP(object):
     def __init__(self, name, chrom, start, end, ref_af, var_af):
         self.name = name
         self.chrom = chrom
@@ -181,7 +181,7 @@ class snp:
         return ":".join([self.chrom, self.end])
 
 
-class tnverify:
+class TNVerify(object):
 
     def __init__(self, workdir, regionsfile, reference, bcftools_prefix="bcftools_",
                  vcffiles=None, samplefiles=None, uncalled_as_ref=False,
@@ -402,10 +402,9 @@ class tnverify:
         matrix, and the "random" name to the leaf labels."""
         self.logger.info("Adding a random sample to the SNP matrix.")
         # random sample based on the Hardy-Weinberg proportions at each location
-        rsamp = map(lambda r: np.random.choice([0, 1, 2], p=[r.ref_af ** 2,
-                                                             2 * r.ref_af * r.var_af,
-                                                             r.var_af ** 2]),
-                    self.keptregions)
+        rsamp = [np.random.choice([0, 1, 2], p=[r.ref_af ** 2,
+                                             2 * r.ref_af * r.var_af,
+                                             r.var_af ** 2]) for r in self.keptregions]
         rsamp = np.array(rsamp).reshape((len(self.keptregions), 1))
         self.overall_flagmtx = np.append(self.overall_flagmtx, rsamp, axis=1)
         self.overall_leaf_labels.append("random")
@@ -499,7 +498,7 @@ class tnverify:
                 ref_af = freqs[0]  # always the first element
                 var_af = freqs[1]  # second element and following
 
-                regions.append(snp(cols[3], cols[0], cols[1],
+                regions.append(SNP(cols[3], cols[0], cols[1],
                                 cols[2], ref_af, var_af))
 
         regions = np.array(regions)
@@ -579,7 +578,6 @@ def is_valid_file(path):
 if __name__ == "__main__":
     import argparse
     import os
-    import sys
 
     parser = argparse.ArgumentParser(description='Verify tumor-normal pair identities')
     parser.add_argument("-w", "--workdir", help="Directory for intermediary files (default: %(default)s)",
@@ -622,10 +620,10 @@ if __name__ == "__main__":
     logfile = os.path.join(args.workdir, "tnverify_run.log")
     loglevel = verbosity_to_loglevel(args.verbosity)
     logger = init_logger(loglevel, logfile)
-    logger.debug("Setting logging verbosity: %s" % loglevel)
+    logger.debug("Setting logging verbosity: %s", loglevel)
 
     try:
-        tnv = tnverify(workdir=args.workdir, regionsfile=args.bed, reference=args.reference, vcffiles=args.vcffile,
+        tnv = TNVerify(workdir=args.workdir, regionsfile=args.bed, reference=args.reference, vcffiles=args.vcffile,
                        samplefiles=args.samplemap, uncalled_as_ref=args.uncalled_as_ref,
                        exchange_vcf_headers=args.exchange_vcf_headers,
                        merge_n_mtx=args.merge_n_mtx, logger=logger)
