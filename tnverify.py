@@ -50,7 +50,7 @@ def vcf2flag(x):
     reference), 1 (heterozygous) and 2 (homozygous SNP)."""
     if x == ".":
         return "NA"
-    if not ":" in x:
+    if ":" not in x:
         raise NotImplementedError("Could not parse VCF entry %s" % x)
     x = x.split(":")[0]
     if x == ".":
@@ -117,12 +117,12 @@ def exec_variant_calling_pipeline(samtools_cmd, bcftools_cmd, outfile, logger):
             logger.info("Executing cmdline: %s | %s" % (samtools_cmd,
                                                         bcftools_cmd))
             samtools = subprocess.Popen(samtools_cmd.split(),
-                                          stdout=subprocess.PIPE,
-                                          stderr=subprocess.PIPE)
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
             bcftools = subprocess.Popen(bcftools_cmd.split(),
-                                 stdin=samtools.stdout,
-                                 stdout=vcffile,
-                                 stderr=subprocess.PIPE)
+                                        stdin=samtools.stdout,
+                                        stdout=vcffile,
+                                        stderr=subprocess.PIPE)
             # Allow samtools to receive a SIGPIPE if bcftools exits.
             samtools.stdout.close()
 
@@ -267,7 +267,7 @@ class TNVerify(object):
         self.regions = self.read_regionsfile(self.regionsfile)
 
         regions_present = np.in1d(map(str, self.regions), self.overall_genomepos)
-        self.keptregions = self.regions[np.where(regions_present == True)]
+        self.keptregions = self.regions[np.where(regions_present is True)]
         if len(self.keptregions) != len(self.overall_genomepos):
             self.logger.warn("Mismatch between number of called SNPs (%i) and "
                              "number of regions (%i)!" %
@@ -338,7 +338,7 @@ class TNVerify(object):
         from functools import reduce
         gpos_common = reduce(np.intersect1d, genomepos_list)
         self.logger.info("%i SNPs common to %i samples" % (len(gpos_common),
-                                                      len(genomepos_list)))
+                                                           len(genomepos_list)))
         return gpos_common
 
     def merge_n_matrixes(self, force=False):
@@ -361,17 +361,17 @@ class TNVerify(object):
         right side of the matrix in order of the list mtx_list."""
         self.logger.info("Creating merged SNP matrix...")
         for k, (mtx, gpos_list) in enumerate(zip(mtx_list, genomepos_list)):
-            self.logger.debug("Matrix %i contains %i SNPs and %i samples" % (k+1, mtx.shape[0], mtx.shape[1]))
-            rm_indexes = np.where(np.in1d(gpos_list, gpos_common) == False)[0]
+            self.logger.debug("Matrix %i contains %i SNPs and %i samples" % (k + 1, mtx.shape[0], mtx.shape[1]))
+            rm_indexes = np.where(np.in1d(gpos_list, gpos_common) is False)[0]
 
             if len(rm_indexes) > 0:
-                self.logger.info("Matrix %i: deleting %i SNPs" % (k+1,
+                self.logger.info("Matrix %i: deleting %i SNPs" % (k + 1,
                                                                   rm_indexes.shape[0]))
                 mtx_list[k] = np.delete(mtx, rm_indexes, 0)
-                self.logger.info("Matrix %i has new dimensions: %i SNPs and %i samples" % (k+1, mtx_list[k].shape[0],
-                                                 mtx_list[k].shape[1]))
+                self.logger.info("Matrix %i has new dimensions: %i SNPs and %i samples" % (k + 1, mtx_list[k].shape[0],
+                                                                                           mtx_list[k].shape[1]))
             else:
-                self.logger.info("Matrix %i: no changes performed." % k+1)
+                self.logger.info("Matrix %i: no changes performed." % k + 1)
 
         snpmtx_merge = np.concatenate(mtx_list, 1)
         self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" % snpmtx_merge.shape)
@@ -391,7 +391,7 @@ class TNVerify(object):
         self.logger.info("Creating merged SNP matrix...")
         for i, (mtx, gpos_list) in enumerate(zip(mtx_list, genomepos_list)):
             new_mtx = np.zeros(shape=(len(gpos_all), mtx.shape[1]))
-            self.logger.debug("Processing matrix %i" % i+1)
+            self.logger.debug("Processing matrix %i" % i + 1)
             for k in range(mtx.shape[0]):
                 idx = gpos_all_idx[gpos_list[k]]
                 new_mtx[idx, :] = mtx[k, :]
@@ -408,8 +408,8 @@ class TNVerify(object):
         self.logger.info("Adding a random sample to the SNP matrix.")
         # random sample based on the Hardy-Weinberg proportions at each location
         rsamp = [np.random.choice([0, 1, 2], p=[r.ref_af ** 2,
-                                             2 * r.ref_af * r.var_af,
-                                             r.var_af ** 2]) for r in self.keptregions]
+                                                2 * r.ref_af * r.var_af,
+                                                r.var_af ** 2]) for r in self.keptregions]
         rsamp = np.array(rsamp).reshape((len(self.keptregions), 1))
         self.overall_flagmtx = np.append(self.overall_flagmtx, rsamp, axis=1)
         self.overall_leaf_labels.append("random")
@@ -461,13 +461,12 @@ class TNVerify(object):
 
                 sflags = set(flags)
                 if len(sflags) == 1 and sflags == set(["NA"]):
-                    #print "Skipping", flags
                     continue
 
                 valid_count += 1
                 # Identifier for a SNP position. Example: 5:456334 (chrom:pos_on_chrom).
-                genomepos[k-ncomments] = ":".join([cols[VCF_COL_CHROM], cols[VCF_COL_POS]])
-                vcfmatrix[k-ncomments, :ncols] = np.asarray(flags)
+                genomepos[k - ncomments] = ":".join([cols[VCF_COL_CHROM], cols[VCF_COL_POS]])
+                vcfmatrix[k - ncomments, :ncols] = np.asarray(flags)
 
         self.logger.debug("Found %i invalid variants in VCF file" % invalid_count)
         self.logger.info("Found %i valid SNPs in VCF file" % valid_count)
@@ -480,7 +479,7 @@ class TNVerify(object):
         across all samples.
         """
         uninf_rows = [x for x in range(self.overall_flagmtx.shape[0]) if
-                 len(np.unique(self.overall_flagmtx[x, :])) == 1]
+                      len(np.unique(self.overall_flagmtx[x, :])) == 1]
         self.logger.debug("SNP matrix before filtering: %i rows, %i cols" %
                           self.overall_flagmtx.shape)
         self.overall_flagmtx = np.delete(self.overall_flagmtx, uninf_rows, 0)
@@ -504,7 +503,7 @@ class TNVerify(object):
                 var_af = freqs[1]  # second element and following
 
                 regions.append(SNP(cols[3], cols[0], cols[1],
-                                cols[2], ref_af, var_af))
+                                   cols[2], ref_af, var_af))
 
         regions = np.array(regions)
         self.logger.debug("Read %i SNPs from regions file." % regions.shape[0])
