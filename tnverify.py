@@ -361,20 +361,22 @@ class TNVerify(object):
         right side of the matrix in order of the list mtx_list."""
         self.logger.info("Creating merged SNP matrix...")
         for k, (mtx, gpos_list) in enumerate(zip(mtx_list, genomepos_list)):
-            self.logger.debug("Matrix %i contains %i SNPs and %i samples" % (k + 1, mtx.shape[0], mtx.shape[1]))
+            self.logger.debug("Matrix %i contains %i SNPs and %i samples" %
+                              (k + 1, mtx.shape[0], mtx.shape[1]))
             rm_indexes = np.where(np.in1d(gpos_list, gpos_common) is False)[0]
 
             if len(rm_indexes) > 0:
                 self.logger.info("Matrix %i: deleting %i SNPs" % (k + 1,
                                                                   rm_indexes.shape[0]))
                 mtx_list[k] = np.delete(mtx, rm_indexes, 0)
-                self.logger.info("Matrix %i has new dimensions: %i SNPs and %i samples" % (k + 1, mtx_list[k].shape[0],
-                                                                                           mtx_list[k].shape[1]))
+                self.logger.info("Matrix %i has new dimensions: %i SNPs and %i samples" %
+                                 (k + 1, mtx_list[k].shape[0], mtx_list[k].shape[1]))
             else:
                 self.logger.info("Matrix %i: no changes performed." % k + 1)
 
         snpmtx_merge = np.concatenate(mtx_list, 1)
-        self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" % snpmtx_merge.shape)
+        self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" %
+                         snpmtx_merge.shape)
         return snpmtx_merge, gpos_common
 
     def merge_snpmtx_uncalled_as_zero(self, genomepos_list, mtx_list):
@@ -399,7 +401,8 @@ class TNVerify(object):
             mtx_list[i] = new_mtx
 
         snpmtx_merge = np.concatenate(mtx_list, 1)
-        self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" % snpmtx_merge.shape)
+        self.logger.info("Merged matrix dimensions: %i SNPs, %i samples" %
+                         snpmtx_merge.shape)
         return snpmtx_merge, gpos_all
 
     def add_random_sample(self):
@@ -428,7 +431,8 @@ class TNVerify(object):
         rate_limiting_limit = 10
         with open(vcffile) as vcf_input:
             nrows, ncols, ncomments = get_file_dims(vcf_input)
-            self.logger.info("Reading VCF file %s containing %i samples and %i variations" % (vcffile, ncols, nrows))
+            self.logger.info("Reading VCF file %s containing %i samples and %i variations"
+                             % (vcffile, ncols, nrows))
 
             genomepos = np.empty(shape=nrows, dtype=np.dtype('S13'))  # 13 char string
             vcfmatrix = np.ndarray((nrows, ncols))
