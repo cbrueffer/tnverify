@@ -267,7 +267,7 @@ class TNVerify(object):
         self.regions = self.read_regionsfile(self.regionsfile)
 
         regions_present = np.in1d(map(str, self.regions), self.overall_genomepos)
-        self.keptregions = self.regions[np.where(regions_present is True)]
+        self.keptregions = self.regions[np.where(regions_present == True)]
         if len(self.keptregions) != len(self.overall_genomepos):
             self.logger.warn("Mismatch between number of called SNPs (%i) and "
                              "number of regions (%i)!" %
@@ -363,7 +363,7 @@ class TNVerify(object):
         for k, (mtx, gpos_list) in enumerate(zip(mtx_list, genomepos_list)):
             self.logger.debug("Matrix %i contains %i SNPs and %i samples" %
                               (k + 1, mtx.shape[0], mtx.shape[1]))
-            rm_indexes = np.where(np.in1d(gpos_list, gpos_common) is False)[0]
+            rm_indexes = np.where(np.in1d(gpos_list, gpos_common) == False)[0]
 
             if len(rm_indexes) > 0:
                 self.logger.info("Matrix %i: deleting %i SNPs" % (k + 1,
