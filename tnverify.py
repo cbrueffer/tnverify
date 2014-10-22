@@ -392,7 +392,7 @@ class TNVerify(object):
         # positions in the new, bigger matrix.
         self.logger.info("Creating merged SNP matrix...")
         for i, (mtx, gpos_list) in enumerate(zip(mtx_list, genomepos_list)):
-            new_mtx = np.zeros(shape=(len(gpos_all), mtx.shape[1]))
+            new_mtx = np.zeros(shape=(len(gpos_all), mtx.shape[1]), dtype=np.int8)
             self.logger.debug("Processing matrix %i" % i + 1)
             for k in range(mtx.shape[0]):
                 idx = gpos_all_idx[gpos_list[k]]
@@ -413,7 +413,7 @@ class TNVerify(object):
         rsamp = [np.random.choice([0, 1, 2], p=[r.ref_af ** 2,
                                                 2 * r.ref_af * r.var_af,
                                                 r.var_af ** 2]) for r in self.keptregions]
-        rsamp = np.array(rsamp).reshape((len(self.keptregions), 1))
+        rsamp = np.array(rsamp, dtype=np.int8).reshape((len(self.keptregions), 1))
         self.overall_flagmtx = np.append(self.overall_flagmtx, rsamp, axis=1)
         self.overall_leaf_labels.append("random")
 
@@ -435,7 +435,7 @@ class TNVerify(object):
                              % (vcffile, ncols, nrows))
 
             genomepos = np.empty(shape=nrows, dtype=np.dtype('S13'))  # 13 char string
-            vcfmatrix = np.ndarray((nrows, ncols))
+            vcfmatrix = np.ndarray((nrows, ncols), dtype=np.int8)
             for k, line in enumerate(vcf_input):
                 if line.startswith("##"):
                     continue
