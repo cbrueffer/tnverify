@@ -320,7 +320,7 @@ class TNVerify(object):
 
             samplebase = os.path.basename(sample)
             filestem, ext = os.path.splitext(samplebase)
-            outfile = ".".join([filestem, "vcf"])
+            outfile = os.path.join(self.workdir, ".".join([filestem, "vcf"]))
 
             self.logger.info("Processing sample: %s" % label)
             try:
